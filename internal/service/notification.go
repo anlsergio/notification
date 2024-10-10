@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"notification/internal/domain"
+	"notification/internal/repository"
 )
 
 // NotificationSender is the abstract representation of the NotificationSender service layer.
@@ -13,10 +14,13 @@ type NotificationSender interface {
 }
 
 // NewEmailNotificationSender creates a new EmailNotificationSender instance.
-func NewEmailNotificationSender(rateLimitHandler RateLimitHandler, mailClient Mailer) *EmailNotificationSender {
+func NewEmailNotificationSender(rateLimitHandler RateLimitHandler,
+	mailClient Mailer,
+	userRepo repository.UserRepository) *EmailNotificationSender {
 	return &EmailNotificationSender{
 		rateLimitHandler: rateLimitHandler,
 		client:           mailClient,
+		userRepo:         userRepo,
 	}
 }
 
@@ -24,6 +28,7 @@ func NewEmailNotificationSender(rateLimitHandler RateLimitHandler, mailClient Ma
 type EmailNotificationSender struct {
 	rateLimitHandler RateLimitHandler
 	client           Mailer
+	userRepo         repository.UserRepository
 }
 
 // Send sends an email notification message to the given user depending on the notification type.
@@ -38,8 +43,12 @@ func (e EmailNotificationSender) Send(ctx context.Context,
 		return fmt.Errorf("notification type %s exceeds the rate limit", notificationType)
 	}
 
-	// TODO: get user email from repository.
-	if err := e.client.SendEmail(nil, []byte(msg)); err != nil {
+	user, err := e.userRepo.Get(userID)
+	if err != nil {
+		return fmt.Errorf("get user fail: %w", err)
+	}
+
+	if err := e.client.SendEmail([]string{user.Email}, []byte(msg)); err != nil {
 		return fmt.Errorf("send mail fail: %w", err)
 	}
 

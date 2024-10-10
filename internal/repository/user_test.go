@@ -18,7 +18,7 @@ func TestInMemoryUserRepository_Save(t *testing.T) {
 		}
 
 		repo := repository.NewInMemoryUserRepository()
-		require.NoError(t, repo.Save(&user))
+		require.NoError(t, repo.Save(user))
 
 		savedUser, err := repo.Get(user.ID)
 		require.NoError(t, err)
@@ -35,9 +35,9 @@ func TestInMemoryUserRepository_Save(t *testing.T) {
 		}
 
 		repo := repository.NewInMemoryUserRepository()
-		require.NoError(t, repo.Save(&user))
+		require.NoError(t, repo.Save(user))
 
-		err := repo.Save(&domain.User{ID: "123-abc"})
+		err := repo.Save(domain.User{ID: "123-abc"})
 		assert.ErrorIs(t, err, repository.ErrUserAlreadyExists)
 	})
 
@@ -50,9 +50,9 @@ func TestInMemoryUserRepository_Save(t *testing.T) {
 		}
 
 		repo := repository.NewInMemoryUserRepository()
-		require.NoError(t, repo.Save(&user))
+		require.NoError(t, repo.Save(user))
 
-		err := repo.Save(&domain.User{Email: "john.doe@example.com"})
+		err := repo.Save(domain.User{Email: "john.doe@example.com"})
 		assert.ErrorIs(t, err, repository.ErrUserAlreadyExists)
 	})
 }

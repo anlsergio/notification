@@ -14,30 +14,30 @@ var (
 // TODO: UserRepository is redundant with the package name.
 type UserRepository interface {
 	// Get retrieves a user by its ID.
-	Get(id string) (*domain.User, error)
+	Get(id string) (domain.User, error)
 	// Save stores a given user in the repository.
-	Save(user *domain.User) error
+	Save(user domain.User) error
 }
 
 // NewInMemoryUserRepository creates a new InMemoryUserRepository instance.
 func NewInMemoryUserRepository() *InMemoryUserRepository {
 	return &InMemoryUserRepository{
-		users: make(map[string]*domain.User),
+		users: make(map[string]domain.User),
 	}
 }
 
 // InMemoryUserRepository is the in-memory representation of the user repository.
 type InMemoryUserRepository struct {
-	users map[string]*domain.User
+	users map[string]domain.User
 }
 
 // Get retrieves a user by its ID.
-func (r *InMemoryUserRepository) Get(id string) (*domain.User, error) {
+func (r *InMemoryUserRepository) Get(id string) (domain.User, error) {
 	return r.users[id], nil
 }
 
 // Save stores a given user in the repository.
-func (r *InMemoryUserRepository) Save(user *domain.User) error {
+func (r *InMemoryUserRepository) Save(user domain.User) error {
 	for _, u := range r.users {
 		if u.Email == user.Email || u.ID == user.ID {
 			return ErrUserAlreadyExists

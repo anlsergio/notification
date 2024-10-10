@@ -19,7 +19,7 @@ func (_m *NotificationSender) Send(ctx context.Context, userID string, msg strin
 	ret := _m.Called(ctx, userID, msg, notificationType)
 
 	if len(ret) == 0 {
-		panic("no return value specified for SendEmail")
+		panic("no return value specified for Send")
 	}
 
 	var r0 error
