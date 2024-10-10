@@ -37,6 +37,10 @@ func WithPassword(password string) RedisCacheOption {
 // WithClient defines a custom Redis client.
 //
 // Defaults to the default redis.Client.
+//
+// Important: if using this option, WithPassword and WithAddr won't have any
+// effect, because those settings are expected to be part of the client
+// definition itself.
 func WithClient(client *redis.Client) RedisCacheOption {
 	return func(r *RedisCache) {
 		r.client = client
@@ -50,18 +54,20 @@ func NewRedisCache(opts ...RedisCacheOption) *RedisCache {
 		opt(&redisCache)
 	}
 
-	if redisCache.client == nil {
-		if redisCache.addr == "" {
-			redisCache.addr = "localhost:6379"
-		}
-
-		client := redis.NewClient(&redis.Options{
-			Addr:     redisCache.addr,
-			Password: redisCache.password,
-			DB:       0, // use default DB
-		})
-		redisCache.client = client
+	if redisCache.client != nil {
+		return &redisCache
 	}
+
+	if redisCache.addr == "" {
+		redisCache.addr = "localhost:6379"
+	}
+
+	client := redis.NewClient(&redis.Options{
+		Addr:     redisCache.addr,
+		Password: redisCache.password,
+		DB:       0, // use default DB
+	})
+	redisCache.client = client
 
 	return &redisCache
 }
@@ -73,6 +79,7 @@ type RedisCache struct {
 	password string
 }
 
+// Incr increments the integer in key by 1 with a TTL defined by expiration on Redis.
 func (r RedisCache) Incr(ctx context.Context, key string, expiration time.Duration) error {
 	_, err := r.client.Incr(ctx, key).Result()
 	if err != nil {
