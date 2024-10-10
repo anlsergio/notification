@@ -48,10 +48,24 @@ func (e EmailNotificationSender) Send(ctx context.Context,
 		return fmt.Errorf("get user fail: %w", err)
 	}
 
-	if err := e.client.SendEmail([]string{user.Email}, []byte(msg)); err != nil {
+	subject := e.defineSubject(notificationType)
+	if err := e.client.SendEmail(user.Email, subject, msg); err != nil {
 		return fmt.Errorf("send mail fail: %w", err)
 	}
 
 	// TODO: retry in error?
 	return e.rateLimitHandler.IncrementCount(ctx, userID, notificationType)
+}
+
+func (e EmailNotificationSender) defineSubject(notificationType domain.NotificationType) string {
+	switch notificationType {
+	case domain.Status:
+		return fmt.Sprintf("%s: there's a new status update", notificationType)
+	case domain.Marketing:
+		return fmt.Sprintf("%s: we've got a new offer for you!", notificationType)
+	case domain.News:
+		return fmt.Sprintf("%s: we've got some news for you!", notificationType)
+	default:
+		return fmt.Sprintf("Notification")
+	}
 }

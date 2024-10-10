@@ -10,7 +10,7 @@ type MailClient struct {
 }
 
 // Send provides a mock function with given fields:
-func (_m *MailClient) SendEmail([]string, []byte) error {
+func (_m *MailClient) SendEmail(string, string, string) error {
 	ret := _m.Called()
 
 	if len(ret) == 0 {
