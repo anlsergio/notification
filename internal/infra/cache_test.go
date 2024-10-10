@@ -1,11 +1,11 @@
-package repository_test
+package infra_test
 
 import (
 	"context"
 	"github.com/go-redis/redismock/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"notification/internal/repository"
+	"notification/internal/infra"
 	"testing"
 	"time"
 )
@@ -16,7 +16,7 @@ func TestRedisCache_Get(t *testing.T) {
 
 	mock.ExpectGet("foo").SetVal("bar")
 
-	redisCache := repository.NewRedisCache(repository.WithClient(db))
+	redisCache := infra.NewRedisCache(infra.WithClient(db))
 	got := redisCache.Get(context.Background(), "foo")
 	assert.Equal(t, "bar", got)
 
@@ -32,7 +32,7 @@ func TestRedisCache_Incr(t *testing.T) {
 	mock.ExpectIncr("foo").SetVal(1)
 	mock.ExpectExpire("foo", time.Hour).SetVal(true)
 
-	redisCache := repository.NewRedisCache(repository.WithClient(db))
+	redisCache := infra.NewRedisCache(infra.WithClient(db))
 	err := redisCache.Incr(context.Background(), "foo", time.Hour)
 	require.NoError(t, err)
 

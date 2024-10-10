@@ -1,4 +1,4 @@
-package repository
+package infra
 
 import (
 	"github.com/go-redis/redismock/v9"

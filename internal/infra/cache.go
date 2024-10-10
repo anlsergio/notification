@@ -1,4 +1,4 @@
-package repository
+package infra
 
 import (
 	"context"
@@ -6,14 +6,6 @@ import (
 	"github.com/redis/go-redis/v9"
 	"time"
 )
-
-// Cache is the abstract representation of the Cache repository.
-type Cache interface {
-	// Incr increments the integer in key by 1 with a TTL defined by expiration.
-	Incr(ctx context.Context, key string, expiration time.Duration) error
-	// Get retrieves the value for the given cache key.
-	Get(ctx context.Context, key string) string
-}
 
 // RedisCacheOption defines the optional parameters for the RedisCache constructor.
 type RedisCacheOption func(r *RedisCache)
@@ -72,7 +64,7 @@ func NewRedisCache(opts ...RedisCacheOption) *RedisCache {
 	return &redisCache
 }
 
-// RedisCache is the concrete implementation of the Redis Cache repository.
+// RedisCache represents the Redis integration service.
 type RedisCache struct {
 	client   *redis.Client
 	addr     string
