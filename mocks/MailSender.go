@@ -10,11 +10,11 @@ type MailSender struct {
 }
 
 // Send provides a mock function with given fields:
-func (_m *MailSender) Send() error {
+func (_m *MailSender) SendEmail([]string, []byte) error {
 	ret := _m.Called()
 
 	if len(ret) == 0 {
-		panic("no return value specified for Send")
+		panic("no return value specified for SendEmail")
 	}
 
 	var r0 error

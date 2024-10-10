@@ -23,7 +23,7 @@ func TestEmailNotification_Send(t *testing.T) {
 
 		mailer := mocks.NewMailSender(t)
 		mailer.
-			On("Send").
+			On("SendEmail", mock.Anything, mock.Anything).
 			Return(nil)
 
 		svc := service.NewEmailNotificationSender(rateLimitHandler, mailer)
@@ -43,14 +43,14 @@ func TestEmailNotification_Send(t *testing.T) {
 
 		mailer := mocks.NewMailSender(t)
 		mailer.
-			On("Send").
+			On("SendEmail", mock.Anything, mock.Anything).
 			Return(nil).
 			Maybe()
 
 		svc := service.NewEmailNotificationSender(rateLimitHandler, mailer)
 		assert.Error(t, svc.Send(context.Background(), "user1", "hey!", domain.Marketing))
 
-		mailer.AssertNotCalled(t, "Send")
+		mailer.AssertNotCalled(t, "SendEmail")
 		rateLimitHandler.AssertNotCalled(t, "IncrementCount", mock.Anything, mock.Anything, mock.Anything)
 	})
 }
