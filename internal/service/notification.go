@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"fmt"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"notification/internal/domain"
 	"notification/internal/repository"
 )
@@ -58,14 +60,21 @@ func (e EmailNotificationSender) Send(ctx context.Context,
 }
 
 func (e EmailNotificationSender) defineSubject(notificationType domain.NotificationType) string {
+	var subject string
 	switch notificationType {
 	case domain.Status:
-		return fmt.Sprintf("%s: there's a new status update", notificationType)
+		subject = "there's a new status update"
 	case domain.Marketing:
-		return fmt.Sprintf("%s: we've got a new offer for you!", notificationType)
+		subject = "we've got a new offer for you!"
 	case domain.News:
-		return fmt.Sprintf("%s: we've got some news for you!", notificationType)
+		subject = "we've got some news for you!"
 	default:
-		return fmt.Sprintf("Notification")
+		return "Notification"
 	}
+
+	prefix := cases.
+		Title(language.English, cases.Compact).
+		String(notificationType.String())
+
+	return fmt.Sprintf("%s: %s", prefix, subject)
 }
