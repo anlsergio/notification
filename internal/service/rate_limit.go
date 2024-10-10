@@ -18,8 +18,8 @@ type RateLimitHandler interface {
 	IncrementCount(ctx context.Context, userID string, notificationType NotificationType) error
 }
 
-// RateLimitConfig defines the rate limit configurations for notifications.
-type RateLimitConfig struct {
+// RateLimitRule defines the rate limit configurations for notifications.
+type RateLimitRule struct {
 	// NotificationType is the notification type this config has effect upon.
 	NotificationType NotificationType
 	// MaxCount is the max notification count allowed for a given time span.
@@ -34,7 +34,7 @@ type RateLimitConfig struct {
 func NewCacheRateLimitHandler(cacheService Cache) *CacheRateLimitHandler {
 	// TODO: this set of configurations could be fetched
 	// from a config service.
-	configs := []RateLimitConfig{
+	rules := []RateLimitRule{
 		{
 			Status,
 			2,
@@ -53,7 +53,7 @@ func NewCacheRateLimitHandler(cacheService Cache) *CacheRateLimitHandler {
 	}
 	return &CacheRateLimitHandler{
 		cacheService: cacheService,
-		configs:      configs,
+		limitRules:   rules,
 	}
 }
 
@@ -61,7 +61,7 @@ func NewCacheRateLimitHandler(cacheService Cache) *CacheRateLimitHandler {
 // based on a cache service.
 type CacheRateLimitHandler struct {
 	cacheService Cache
-	configs      []RateLimitConfig
+	limitRules   []RateLimitRule
 }
 
 // Check returns True if there's capacity available for the notification
@@ -78,8 +78,8 @@ func (d CacheRateLimitHandler) Check(ctx context.Context, userID string, notific
 		return false, fmt.Errorf("failed converting notification counts from cache: %w", err)
 	}
 
-	// TODO: configs could be a hash table, identified by notificationType as key.
-	for _, rule := range d.configs {
+	// TODO: limitRules could be a hash table, identified by notificationType as key.
+	for _, rule := range d.limitRules {
 		if notificationType == rule.NotificationType {
 			if counts >= rule.MaxCount {
 				return false, nil
@@ -94,8 +94,8 @@ func (d CacheRateLimitHandler) Check(ctx context.Context, userID string, notific
 func (d CacheRateLimitHandler) IncrementCount(ctx context.Context, userID string, notificationType NotificationType) error {
 	cacheKey := fmt.Sprintf("%s:%s", userID, notificationType)
 	var expiration time.Duration
-	// TODO: configs could be a hash table, identified by notificationType as key.
-	for _, rule := range d.configs {
+	// TODO: limitRules could be a hash table, identified by notificationType as key.
+	for _, rule := range d.limitRules {
 		if notificationType == rule.NotificationType {
 			expiration = rule.Expiration
 		}

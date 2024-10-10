@@ -17,7 +17,7 @@ type Cache interface {
 
 // NewRedisCache instantiates a new RedisCache instance.
 func NewRedisCache() *RedisCache {
-	// TODO: inject configs properly
+	// TODO: inject limitRules properly
 	client := redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
 		Password: "", // no password set
