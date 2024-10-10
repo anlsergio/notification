@@ -4,7 +4,7 @@ package mocks
 
 import (
 	context "context"
-	service "notification/internal/service"
+	domain "notification/internal/domain"
 
 	mock "github.com/stretchr/testify/mock"
 )
@@ -15,7 +15,7 @@ type RateLimitHandler struct {
 }
 
 // Check provides a mock function with given fields: ctx, userID, notificationType
-func (_m *RateLimitHandler) Check(ctx context.Context, userID string, notificationType service.NotificationType) (bool, error) {
+func (_m *RateLimitHandler) Check(ctx context.Context, userID string, notificationType domain.NotificationType) (bool, error) {
 	ret := _m.Called(ctx, userID, notificationType)
 
 	if len(ret) == 0 {
@@ -24,16 +24,16 @@ func (_m *RateLimitHandler) Check(ctx context.Context, userID string, notificati
 
 	var r0 bool
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, service.NotificationType) (bool, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, domain.NotificationType) (bool, error)); ok {
 		return rf(ctx, userID, notificationType)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, service.NotificationType) bool); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, domain.NotificationType) bool); ok {
 		r0 = rf(ctx, userID, notificationType)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, service.NotificationType) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, string, domain.NotificationType) error); ok {
 		r1 = rf(ctx, userID, notificationType)
 	} else {
 		r1 = ret.Error(1)
@@ -43,7 +43,7 @@ func (_m *RateLimitHandler) Check(ctx context.Context, userID string, notificati
 }
 
 // IncrementCount provides a mock function with given fields: ctx, userID, notificationType
-func (_m *RateLimitHandler) IncrementCount(ctx context.Context, userID string, notificationType service.NotificationType) error {
+func (_m *RateLimitHandler) IncrementCount(ctx context.Context, userID string, notificationType domain.NotificationType) error {
 	ret := _m.Called(ctx, userID, notificationType)
 
 	if len(ret) == 0 {
@@ -51,7 +51,7 @@ func (_m *RateLimitHandler) IncrementCount(ctx context.Context, userID string, n
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, service.NotificationType) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, domain.NotificationType) error); ok {
 		r0 = rf(ctx, userID, notificationType)
 	} else {
 		r0 = ret.Error(0)

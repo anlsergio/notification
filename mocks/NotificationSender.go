@@ -4,7 +4,7 @@ package mocks
 
 import (
 	context "context"
-	service "notification/internal/service"
+	domain "notification/internal/domain"
 
 	mock "github.com/stretchr/testify/mock"
 )
@@ -15,7 +15,7 @@ type NotificationSender struct {
 }
 
 // Send provides a mock function with given fields: ctx, userID, msg, notificationType
-func (_m *NotificationSender) Send(ctx context.Context, userID string, msg string, notificationType service.NotificationType) error {
+func (_m *NotificationSender) Send(ctx context.Context, userID string, msg string, notificationType domain.NotificationType) error {
 	ret := _m.Called(ctx, userID, msg, notificationType)
 
 	if len(ret) == 0 {
@@ -23,7 +23,7 @@ func (_m *NotificationSender) Send(ctx context.Context, userID string, msg strin
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, service.NotificationType) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, domain.NotificationType) error); ok {
 		r0 = rf(ctx, userID, msg, notificationType)
 	} else {
 		r0 = ret.Error(0)

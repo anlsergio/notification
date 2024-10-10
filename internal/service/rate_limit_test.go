@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"notification/internal/domain"
 	"notification/internal/service"
 	"notification/mocks"
 	"testing"
@@ -11,16 +12,16 @@ import (
 )
 
 func TestCacheRateLimitHandler_Check(t *testing.T) {
-	rules := service.RateLimitRules{
-		service.Status: service.RateLimitRule{
+	rules := domain.RateLimitRules{
+		domain.Status: domain.RateLimitRule{
 			MaxCount:   2,
 			Expiration: time.Minute * 1,
 		},
-		service.News: service.RateLimitRule{
+		domain.News: domain.RateLimitRule{
 			MaxCount:   1,
 			Expiration: time.Hour * 24,
 		},
-		service.Marketing: service.RateLimitRule{
+		domain.Marketing: domain.RateLimitRule{
 			MaxCount:   3,
 			Expiration: time.Hour * 1,
 		},
@@ -33,7 +34,7 @@ func TestCacheRateLimitHandler_Check(t *testing.T) {
 			Return("1")
 
 		checker := service.NewCacheRateLimitHandler(cacheSvc, rules)
-		ok, err := checker.Check(context.Background(), "123", service.Status)
+		ok, err := checker.Check(context.Background(), "123", domain.Status)
 		require.NoError(t, err)
 		require.True(t, ok)
 	})
@@ -44,15 +45,15 @@ func TestCacheRateLimitHandler_Check(t *testing.T) {
 			Return("100")
 
 		checker := service.NewCacheRateLimitHandler(cacheSvc, rules)
-		ok, err := checker.Check(context.Background(), "123", service.Status)
+		ok, err := checker.Check(context.Background(), "123", domain.Status)
 		require.NoError(t, err)
 		require.False(t, ok)
 	})
 }
 
 func TestCacheRateLimitHandler_IncrementCount(t *testing.T) {
-	rules := service.RateLimitRules{
-		service.Status: service.RateLimitRule{
+	rules := domain.RateLimitRules{
+		domain.Status: domain.RateLimitRule{
 			MaxCount:   2,
 			Expiration: time.Minute * 1,
 		},
@@ -65,6 +66,6 @@ func TestCacheRateLimitHandler_IncrementCount(t *testing.T) {
 			Return(nil)
 
 		checker := service.NewCacheRateLimitHandler(cacheSvc, rules)
-		require.NoError(t, checker.IncrementCount(context.Background(), "123", service.Status))
+		require.NoError(t, checker.IncrementCount(context.Background(), "123", domain.Status))
 	})
 }

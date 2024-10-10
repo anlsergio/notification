@@ -3,39 +3,13 @@ package service
 import (
 	"context"
 	"fmt"
+	"notification/internal/domain"
 )
-
-const (
-	// Status represents the notification for status updates.
-	Status NotificationType = iota + 1
-	// News represents the notification for news about the product.
-	News
-	// Marketing represents our marketing campaign notifications.
-	Marketing
-)
-
-// NotificationType defines the different notification types.
-type NotificationType int
-
-// String returns the string equivalent of NotificationType.
-// It returns an empty string if the notification type is invalid.
-func (t NotificationType) String() string {
-	switch t {
-	case Status:
-		return "status"
-	case News:
-		return "news"
-	case Marketing:
-		return "marketing"
-	default:
-		return ""
-	}
-}
 
 // NotificationSender is the abstract representation of the NotificationSender service layer.
 type NotificationSender interface {
 	// Send sends a message to the given user depending on the notification type.
-	Send(ctx context.Context, userID string, msg string, notificationType NotificationType) error
+	Send(ctx context.Context, userID string, msg string, notificationType domain.NotificationType) error
 }
 
 // NewEmailNotificationSender creates a new EmailNotificationSender instance.
@@ -53,7 +27,7 @@ type EmailNotificationSender struct {
 }
 
 // Send sends an email notification message to the given user depending on the notification type.
-func (e EmailNotificationSender) Send(ctx context.Context, userID string, msg string, notificationType NotificationType) error {
+func (e EmailNotificationSender) Send(ctx context.Context, userID string, msg string, notificationType domain.NotificationType) error {
 	ok, err := e.rateLimitHandler.Check(ctx, userID, notificationType)
 	if err != nil {
 		return fmt.Errorf("rate limit check fail: %w", err)

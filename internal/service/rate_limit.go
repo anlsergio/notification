@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 	"fmt"
+	"notification/internal/domain"
 	"strconv"
-	"time"
 )
 
 // RateLimitHandler is the abstract representation of the rate limit checker,
@@ -13,26 +13,13 @@ import (
 type RateLimitHandler interface {
 	// Check returns True if there's capacity available for the notification
 	// to be sent for the given user.
-	Check(ctx context.Context, userID string, notificationType NotificationType) (bool, error)
+	Check(ctx context.Context, userID string, notificationType domain.NotificationType) (bool, error)
 	// IncrementCount TODO: add go doc.
-	IncrementCount(ctx context.Context, userID string, notificationType NotificationType) error
-}
-
-// RateLimitRules defines the rate limit rules for a given notification type.
-type RateLimitRules map[NotificationType]RateLimitRule
-
-// RateLimitRule defines the rate limit rule configuration.
-type RateLimitRule struct {
-	// MaxCount is the max notification count allowed for a given time span.
-	MaxCount int
-	// Expiration is the time span defined for limiting a certain number of messages.
-	Expiration time.Duration
+	IncrementCount(ctx context.Context, userID string, notificationType domain.NotificationType) error
 }
 
 // NewCacheRateLimitHandler creates a new CacheRateLimitHandler instance.
-// TODO: the config rules should probably be injected into the constructor, instead
-// of being hard-coded, to give more control to tests.
-func NewCacheRateLimitHandler(cacheService Cache, rules RateLimitRules) *CacheRateLimitHandler {
+func NewCacheRateLimitHandler(cacheService Cache, rules domain.RateLimitRules) *CacheRateLimitHandler {
 	return &CacheRateLimitHandler{
 		cacheService: cacheService,
 		limitRules:   rules,
@@ -43,7 +30,7 @@ func NewCacheRateLimitHandler(cacheService Cache, rules RateLimitRules) *CacheRa
 // based on a cache service.
 type CacheRateLimitHandler struct {
 	cacheService Cache
-	limitRules   RateLimitRules
+	limitRules   domain.RateLimitRules
 }
 
 // Check returns True if there's capacity available for the notification
@@ -51,7 +38,8 @@ type CacheRateLimitHandler struct {
 // TODO: Handle concurrent checks where depending on the number of replicas
 // the notification system might misbehave, allowing more notifications than it should.
 // Transactional guarantee? Locking someway?
-func (d CacheRateLimitHandler) Check(ctx context.Context, userID string, notificationType NotificationType) (bool, error) {
+func (d CacheRateLimitHandler) Check(ctx context.Context,
+	userID string, notificationType domain.NotificationType) (bool, error) {
 	cacheKey := fmt.Sprintf("%s:%s", userID, notificationType)
 
 	notificationCounts := d.cacheService.Get(ctx, cacheKey)
@@ -69,7 +57,8 @@ func (d CacheRateLimitHandler) Check(ctx context.Context, userID string, notific
 }
 
 // IncrementCount adds to the rate limit counter for the given userID + notification type combination.
-func (d CacheRateLimitHandler) IncrementCount(ctx context.Context, userID string, notificationType NotificationType) error {
+func (d CacheRateLimitHandler) IncrementCount(ctx context.Context,
+	userID string, notificationType domain.NotificationType) error {
 	cacheKey := fmt.Sprintf("%s:%s", userID, notificationType)
 	rule := d.limitRules[notificationType]
 	return d.cacheService.Incr(ctx, cacheKey, rule.Expiration)
