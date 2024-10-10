@@ -18,10 +18,11 @@ type RateLimitHandler interface {
 	IncrementCount(ctx context.Context, userID string, notificationType NotificationType) error
 }
 
-// RateLimitRule defines the rate limit configurations for notifications.
+// RateLimitRules defines the rate limit rules for a given notification type.
+type RateLimitRules map[NotificationType]RateLimitRule
+
+// RateLimitRule defines the rate limit rule configuration.
 type RateLimitRule struct {
-	// NotificationType is the notification type this config has effect upon.
-	NotificationType NotificationType
 	// MaxCount is the max notification count allowed for a given time span.
 	MaxCount int
 	// Expiration is the time span defined for limiting a certain number of messages.
@@ -34,23 +35,21 @@ type RateLimitRule struct {
 func NewCacheRateLimitHandler(cacheService Cache) *CacheRateLimitHandler {
 	// TODO: this set of configurations could be fetched
 	// from a config service.
-	rules := []RateLimitRule{
-		{
-			Status,
+	rules := RateLimitRules{
+		Status: RateLimitRule{
 			2,
 			time.Minute * 1,
 		},
-		{
-			News,
+		News: RateLimitRule{
 			1,
 			time.Hour * 24,
 		},
-		{
-			Marketing,
+		Marketing: RateLimitRule{
 			3,
 			time.Hour * 1,
 		},
 	}
+
 	return &CacheRateLimitHandler{
 		cacheService: cacheService,
 		limitRules:   rules,
@@ -61,7 +60,7 @@ func NewCacheRateLimitHandler(cacheService Cache) *CacheRateLimitHandler {
 // based on a cache service.
 type CacheRateLimitHandler struct {
 	cacheService Cache
-	limitRules   []RateLimitRule
+	limitRules   RateLimitRules
 }
 
 // Check returns True if there's capacity available for the notification
@@ -78,13 +77,9 @@ func (d CacheRateLimitHandler) Check(ctx context.Context, userID string, notific
 		return false, fmt.Errorf("failed converting notification counts from cache: %w", err)
 	}
 
-	// TODO: limitRules could be a hash table, identified by notificationType as key.
-	for _, rule := range d.limitRules {
-		if notificationType == rule.NotificationType {
-			if counts >= rule.MaxCount {
-				return false, nil
-			}
-		}
+	rule := d.limitRules[notificationType]
+	if counts >= rule.MaxCount {
+		return false, nil
 	}
 
 	return true, nil
@@ -93,13 +88,6 @@ func (d CacheRateLimitHandler) Check(ctx context.Context, userID string, notific
 // IncrementCount adds to the rate limit counter for the given userID + notification type combination.
 func (d CacheRateLimitHandler) IncrementCount(ctx context.Context, userID string, notificationType NotificationType) error {
 	cacheKey := fmt.Sprintf("%s:%s", userID, notificationType)
-	var expiration time.Duration
-	// TODO: limitRules could be a hash table, identified by notificationType as key.
-	for _, rule := range d.limitRules {
-		if notificationType == rule.NotificationType {
-			expiration = rule.Expiration
-		}
-	}
-
-	return d.cacheService.Incr(ctx, cacheKey, expiration)
+	rule := d.limitRules[notificationType]
+	return d.cacheService.Incr(ctx, cacheKey, rule.Expiration)
 }
