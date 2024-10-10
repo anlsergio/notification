@@ -15,20 +15,62 @@ type Cache interface {
 	Get(ctx context.Context, key string) string
 }
 
+// RedisCacheOption defines the optional parameters for the RedisCache constructor.
+type RedisCacheOption func(r *RedisCache)
+
+// WithAddr sets a Redis connection address.
+//
+// Defaults to "localhost:6379"
+func WithAddr(addr string) RedisCacheOption {
+	return func(r *RedisCache) {
+		r.addr = addr
+	}
+}
+
+// WithPassword sets a Redis connection password.
+func WithPassword(password string) RedisCacheOption {
+	return func(r *RedisCache) {
+		r.password = password
+	}
+}
+
+// WithClient defines a custom Redis client.
+//
+// Defaults to the default redis.Client.
+func WithClient(client *redis.Client) RedisCacheOption {
+	return func(r *RedisCache) {
+		r.client = client
+	}
+}
+
 // NewRedisCache instantiates a new RedisCache instance.
-func NewRedisCache() *RedisCache {
-	// TODO: inject limitRules properly
-	client := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "", // no password set
-		DB:       0,  // use default DB
-	})
-	return &RedisCache{client}
+func NewRedisCache(opts ...RedisCacheOption) *RedisCache {
+	redisCache := RedisCache{}
+	for _, opt := range opts {
+		opt(&redisCache)
+	}
+
+	if redisCache.client == nil {
+		if redisCache.addr == "" {
+			redisCache.addr = "localhost:6379"
+		}
+
+		client := redis.NewClient(&redis.Options{
+			Addr:     redisCache.addr,
+			Password: redisCache.password,
+			DB:       0, // use default DB
+		})
+		redisCache.client = client
+	}
+
+	return &redisCache
 }
 
 // RedisCache is the concrete implementation of the Redis Cache repository.
 type RedisCache struct {
-	client *redis.Client
+	client   *redis.Client
+	addr     string
+	password string
 }
 
 func (r RedisCache) Incr(ctx context.Context, key string, expiration time.Duration) error {
