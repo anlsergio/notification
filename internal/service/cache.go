@@ -5,9 +5,9 @@ import "context"
 // Cache is the abstract representation of the Cache service.
 type Cache interface {
 	// Set sets a value to the cache for the given key.
-	Set(ctx context.Context, key string, value any)
+	Set(ctx context.Context, key string, value any) error
 	// Get retrieves the value for the given cache key.
-	Get(ctx context.Context, key string) any
+	Get(ctx context.Context, key string) (any, error)
 }
 
 // NewRedisCache instantiates a new RedisCache instance.
