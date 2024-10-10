@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"notification/internal/domain"
+	"notification/internal/repository"
 	"strconv"
 )
 
@@ -19,18 +20,18 @@ type RateLimitHandler interface {
 }
 
 // NewCacheRateLimitHandler creates a new CacheRateLimitHandler instance.
-func NewCacheRateLimitHandler(cacheService Cache, rules domain.RateLimitRules) *CacheRateLimitHandler {
+func NewCacheRateLimitHandler(cacheRepo repository.Cache, rules domain.RateLimitRules) *CacheRateLimitHandler {
 	return &CacheRateLimitHandler{
-		cacheService: cacheService,
-		limitRules:   rules,
+		cacheRepo:  cacheRepo,
+		limitRules: rules,
 	}
 }
 
 // CacheRateLimitHandler handles the rate limiting checks and state
 // based on a cache service.
 type CacheRateLimitHandler struct {
-	cacheService Cache
-	limitRules   domain.RateLimitRules
+	cacheRepo  repository.Cache
+	limitRules domain.RateLimitRules
 }
 
 // Check returns True if there's capacity available for the notification
@@ -42,7 +43,7 @@ func (d CacheRateLimitHandler) Check(ctx context.Context,
 	userID string, notificationType domain.NotificationType) (bool, error) {
 	cacheKey := fmt.Sprintf("%s:%s", userID, notificationType)
 
-	notificationCounts := d.cacheService.Get(ctx, cacheKey)
+	notificationCounts := d.cacheRepo.Get(ctx, cacheKey)
 	counts, err := strconv.Atoi(notificationCounts)
 	if err != nil {
 		return false, fmt.Errorf("failed converting notification counts from cache: %w", err)
@@ -61,5 +62,5 @@ func (d CacheRateLimitHandler) IncrementCount(ctx context.Context,
 	userID string, notificationType domain.NotificationType) error {
 	cacheKey := fmt.Sprintf("%s:%s", userID, notificationType)
 	rule := d.limitRules[notificationType]
-	return d.cacheService.Incr(ctx, cacheKey, rule.Expiration)
+	return d.cacheRepo.Incr(ctx, cacheKey, rule.Expiration)
 }

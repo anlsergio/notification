@@ -1,4 +1,4 @@
-package service
+package repository
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// Cache is the abstract representation of the Cache service.
+// Cache is the abstract representation of the Cache repository.
 type Cache interface {
 	// Incr increments the integer in key by 1 with a TTL defined by expiration.
 	Incr(ctx context.Context, key string, expiration time.Duration) error
@@ -26,7 +26,7 @@ func NewRedisCache() *RedisCache {
 	return &RedisCache{client}
 }
 
-// RedisCache is the concrete implementation of the Redis Cache service.
+// RedisCache is the concrete implementation of the Redis Cache repository.
 type RedisCache struct {
 	client *redis.Client
 }
