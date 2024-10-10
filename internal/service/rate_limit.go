@@ -32,24 +32,7 @@ type RateLimitRule struct {
 // NewCacheRateLimitHandler creates a new CacheRateLimitHandler instance.
 // TODO: the config rules should probably be injected into the constructor, instead
 // of being hard-coded, to give more control to tests.
-func NewCacheRateLimitHandler(cacheService Cache) *CacheRateLimitHandler {
-	// TODO: this set of configurations could be fetched
-	// from a config service.
-	rules := RateLimitRules{
-		Status: RateLimitRule{
-			2,
-			time.Minute * 1,
-		},
-		News: RateLimitRule{
-			1,
-			time.Hour * 24,
-		},
-		Marketing: RateLimitRule{
-			3,
-			time.Hour * 1,
-		},
-	}
-
+func NewCacheRateLimitHandler(cacheService Cache, rules RateLimitRules) *CacheRateLimitHandler {
 	return &CacheRateLimitHandler{
 		cacheService: cacheService,
 		limitRules:   rules,
