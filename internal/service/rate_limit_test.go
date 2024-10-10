@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"context"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"notification/internal/domain"
@@ -38,6 +39,19 @@ func TestCacheRateLimitHandler_Check(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, ok)
 	})
+
+	t.Run("when key is not set should default count to 0", func(t *testing.T) {
+		cacheSvc := mocks.NewCache(t)
+		cacheSvc.
+			On("Get", mock.Anything, mock.Anything).
+			Return("")
+
+		checker := service.NewCacheRateLimitHandler(cacheSvc, rules)
+		ok, err := checker.Check(context.Background(), "123", domain.Status)
+		require.NoError(t, err)
+		require.True(t, ok)
+	})
+
 	t.Run("is rate limited", func(t *testing.T) {
 		cacheSvc := mocks.NewCache(t)
 		cacheSvc.
@@ -48,6 +62,17 @@ func TestCacheRateLimitHandler_Check(t *testing.T) {
 		ok, err := checker.Check(context.Background(), "123", domain.Status)
 		require.NoError(t, err)
 		require.False(t, ok)
+	})
+
+	t.Run("key is invalid type", func(t *testing.T) {
+		cacheSvc := mocks.NewCache(t)
+		cacheSvc.
+			On("Get", mock.Anything, mock.Anything).
+			Return("abc")
+
+		checker := service.NewCacheRateLimitHandler(cacheSvc, rules)
+		_, err := checker.Check(context.Background(), "123", domain.Status)
+		assert.Error(t, err)
 	})
 }
 

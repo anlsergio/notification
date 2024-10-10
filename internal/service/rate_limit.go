@@ -42,10 +42,13 @@ func (d CacheRateLimitHandler) Check(ctx context.Context,
 	userID string, notificationType domain.NotificationType) (bool, error) {
 	cacheKey := fmt.Sprintf("%s:%s", userID, notificationType)
 
-	notificationCounts := d.cacheService.Get(ctx, cacheKey)
-	counts, err := strconv.Atoi(notificationCounts)
+	stringCounts := d.cacheService.Get(ctx, cacheKey)
+	counts, err := strconv.Atoi(stringCounts)
 	if err != nil {
-		return false, fmt.Errorf("failed converting notification counts from cache: %w", err)
+		if stringCounts != "" {
+			return false, fmt.Errorf("failed converting notification counts from cache: %w", err)
+		}
+		counts = 0
 	}
 
 	rule := d.limitRules[notificationType]
