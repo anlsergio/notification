@@ -56,7 +56,7 @@ func TestCacheRateLimitHandler_Check(t *testing.T) {
 		ok, err := checker.IsRateLimited(context.Background(), "123", domain.Status)
 		require.NoError(t, err)
 		assert.False(t, ok)
-		//cacheSvc.AssertNotCalled(t, "Incr", mock.Anything, mock.Anything, mock.Anything)
+		cacheSvc.AssertNotCalled(t, "Incr", mock.Anything, mock.Anything, mock.Anything)
 	})
 
 	t.Run("when key is not set should default count to 0", func(t *testing.T) {

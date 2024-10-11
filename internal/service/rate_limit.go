@@ -41,11 +41,15 @@ func (h CacheRateLimitHandler) IsRateLimited(ctx context.Context,
 		return false, fmt.Errorf("check availability fail: %w", err)
 	}
 
+	if !ok {
+		return false, nil
+	}
+
 	if err = h.incrementCount(ctx, key, rule); err != nil {
 		return false, fmt.Errorf("increment count fail: %w", err)
 	}
 
-	return ok, nil
+	return true, nil
 }
 
 // check returns True if there's capacity available for the notification
@@ -56,9 +60,13 @@ func (h CacheRateLimitHandler) checkAvailability(ctx context.Context,
 	stringCounts := h.cacheService.Get(ctx, key)
 	counts, err := strconv.Atoi(stringCounts)
 	if err != nil {
+		// if the int conversion fails and stringCounts is populated with anything but an empty string
+		// at this point it's not safe to assume its correct int counterpart.
 		if stringCounts != "" {
 			return false, fmt.Errorf("failed converting notification counts from cache: %w", err)
 		}
+		// if it's an empty string, it's probably because the key doesn't currently exist in the cache yet
+		// and therefore, we can assume a 0 count.
 		counts = 0
 	}
 
