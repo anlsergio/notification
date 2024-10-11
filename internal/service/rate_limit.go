@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"notification/internal/domain"
+	"notification/internal/repository"
 	"strconv"
 	"time"
 )
@@ -18,10 +19,10 @@ type RateLimitHandler interface {
 }
 
 // NewCacheRateLimitHandler creates a new CacheRateLimitHandler instance.
-func NewCacheRateLimitHandler(cacheService Cache, rules domain.RateLimitRules) *CacheRateLimitHandler {
+func NewCacheRateLimitHandler(cacheService Cache, rulesRepo repository.RateLimitRuleRepository) *CacheRateLimitHandler {
 	return &CacheRateLimitHandler{
 		cacheService: cacheService,
-		limitRules:   rules,
+		repo:         rulesRepo,
 	}
 }
 
@@ -29,13 +30,16 @@ func NewCacheRateLimitHandler(cacheService Cache, rules domain.RateLimitRules) *
 // based on a cache service.
 type CacheRateLimitHandler struct {
 	cacheService Cache
-	limitRules   domain.RateLimitRules
+	repo         repository.RateLimitRuleRepository
 }
 
 func (h CacheRateLimitHandler) IsRateLimited(ctx context.Context,
 	userID string, notificationType domain.NotificationType) (bool, error) {
 	key := fmt.Sprintf("%s:%s", userID, notificationType)
-	rule := h.limitRules[notificationType]
+	rule, err := h.repo.GetByNotificationType(notificationType)
+	if err != nil {
+		return false, fmt.Errorf("get rate limit rule by notification type fail: %w", err)
+	}
 
 	ok, err := h.checkAvailability(ctx, key, rule.MaxCount)
 	if err != nil {

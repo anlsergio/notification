@@ -29,7 +29,13 @@ func main() {
 			Expiration: time.Hour * 1,
 		},
 	}
-	rateLimitHandler := service.NewCacheRateLimitHandler(cacheService, rules)
+
+	rateLimitRulesRepo := repository.NewInMemoryRateLimitRuleRepository()
+	for k, v := range rules {
+		_ = rateLimitRulesRepo.Save(k, v)
+	}
+
+	rateLimitHandler := service.NewCacheRateLimitHandler(cacheService, rateLimitRulesRepo)
 	mailClient := infra.NewSMTPMailer("localhost:1025", "no-reply@example.com")
 	userRepo := repository.NewInMemoryUserRepository()
 	notificationSvc := service.NewEmailNotificationSender(rateLimitHandler, mailClient, userRepo)

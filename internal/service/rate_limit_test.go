@@ -28,6 +28,13 @@ func TestCacheRateLimitHandler_Check(t *testing.T) {
 		},
 	}
 
+	rateLimitRulesRepo := mocks.NewRateLimitRuleRepository(t)
+	rateLimitRulesRepo.
+		On("GetByNotificationType", mock.Anything).
+		Return(func(notificationType domain.NotificationType) (domain.RateLimitRule, error) {
+			return rules[notificationType], nil
+		})
+
 	t.Run("is not rate limited", func(t *testing.T) {
 		cacheSvc := mocks.NewCache(t)
 		cacheSvc.
@@ -37,7 +44,7 @@ func TestCacheRateLimitHandler_Check(t *testing.T) {
 			On("Incr", mock.Anything, mock.Anything, mock.Anything).
 			Return(nil)
 
-		checker := service.NewCacheRateLimitHandler(cacheSvc, rules)
+		checker := service.NewCacheRateLimitHandler(cacheSvc, rateLimitRulesRepo)
 		ok, err := checker.IsRateLimited(context.Background(), "123", domain.Status)
 		require.NoError(t, err)
 		assert.True(t, ok)
@@ -52,7 +59,7 @@ func TestCacheRateLimitHandler_Check(t *testing.T) {
 			On("Incr", mock.Anything, mock.Anything, mock.Anything).
 			Return(nil).Maybe()
 
-		checker := service.NewCacheRateLimitHandler(cacheSvc, rules)
+		checker := service.NewCacheRateLimitHandler(cacheSvc, rateLimitRulesRepo)
 		ok, err := checker.IsRateLimited(context.Background(), "123", domain.Status)
 		require.NoError(t, err)
 		assert.False(t, ok)
@@ -68,7 +75,7 @@ func TestCacheRateLimitHandler_Check(t *testing.T) {
 			On("Incr", mock.Anything, mock.Anything, mock.Anything).
 			Return(nil)
 
-		checker := service.NewCacheRateLimitHandler(cacheSvc, rules)
+		checker := service.NewCacheRateLimitHandler(cacheSvc, rateLimitRulesRepo)
 		ok, err := checker.IsRateLimited(context.Background(), "123", domain.Status)
 		require.NoError(t, err)
 		assert.True(t, ok)
@@ -83,7 +90,7 @@ func TestCacheRateLimitHandler_Check(t *testing.T) {
 			On("Incr", mock.Anything, mock.Anything, mock.Anything).
 			Return(nil).Maybe()
 
-		checker := service.NewCacheRateLimitHandler(cacheSvc, rules)
+		checker := service.NewCacheRateLimitHandler(cacheSvc, rateLimitRulesRepo)
 		_, err := checker.IsRateLimited(context.Background(), "123", domain.Status)
 		assert.Error(t, err)
 		cacheSvc.AssertNotCalled(t, "Incr", mock.Anything, mock.Anything, mock.Anything)
