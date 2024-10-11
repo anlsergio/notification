@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"notification/internal/domain"
 	"strconv"
+	"time"
 )
 
 // RateLimitHandler is the abstract representation of the rate limit checker,
@@ -45,7 +46,7 @@ func (h CacheRateLimitHandler) IsRateLimited(ctx context.Context,
 		return false, nil
 	}
 
-	if err = h.incrementCount(ctx, key, rule); err != nil {
+	if err = h.incrementCount(ctx, key, rule.Expiration); err != nil {
 		return false, fmt.Errorf("increment count fail: %w", err)
 	}
 
@@ -53,7 +54,7 @@ func (h CacheRateLimitHandler) IsRateLimited(ctx context.Context,
 }
 
 // check returns True if there's capacity available for the notification
-// to be sent for the given user.
+// to be sent based on the maximum allowed count for the given key.
 func (h CacheRateLimitHandler) checkAvailability(ctx context.Context,
 	key string, maxCount int) (bool, error) {
 
@@ -77,8 +78,8 @@ func (h CacheRateLimitHandler) checkAvailability(ctx context.Context,
 	return true, nil
 }
 
-// incrementCount adds to the rate limit counter for the given userID + notification type combination.
+// incrementCount adds to the rate limit counter based the key, applying the specified TTL.
 func (h CacheRateLimitHandler) incrementCount(ctx context.Context,
-	key string, rule domain.RateLimitRule) error {
-	return h.cacheService.Incr(ctx, key, rule.Expiration)
+	key string, ttl time.Duration) error {
+	return h.cacheService.Incr(ctx, key, ttl)
 }
