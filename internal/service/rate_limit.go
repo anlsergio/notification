@@ -33,13 +33,15 @@ type CacheRateLimitHandler struct {
 
 func (h CacheRateLimitHandler) IsRateLimited(ctx context.Context,
 	userID string, notificationType domain.NotificationType) (bool, error) {
+	key := fmt.Sprintf("%s:%s", userID, notificationType)
+	rule := h.limitRules[notificationType]
 
-	ok, err := h.checkAvailability(ctx, userID, notificationType)
+	ok, err := h.checkAvailability(ctx, key, rule)
 	if err != nil {
 		return false, fmt.Errorf("check availability fail: %w", err)
 	}
 
-	if err = h.incrementCount(ctx, userID, notificationType); err != nil {
+	if err = h.incrementCount(ctx, key, rule); err != nil {
 		return false, fmt.Errorf("increment count fail: %w", err)
 	}
 
@@ -48,14 +50,10 @@ func (h CacheRateLimitHandler) IsRateLimited(ctx context.Context,
 
 // check returns True if there's capacity available for the notification
 // to be sent for the given user.
-// TODO: Handle concurrent checks where depending on the number of replicas
-// the notification system might misbehave, allowing more notifications than it should.
-// Transactional guarantee? Locking someway?
 func (h CacheRateLimitHandler) checkAvailability(ctx context.Context,
-	userID string, notificationType domain.NotificationType) (bool, error) {
-	cacheKey := fmt.Sprintf("%s:%s", userID, notificationType)
+	key string, rule domain.RateLimitRule) (bool, error) {
 
-	stringCounts := h.cacheService.Get(ctx, cacheKey)
+	stringCounts := h.cacheService.Get(ctx, key)
 	counts, err := strconv.Atoi(stringCounts)
 	if err != nil {
 		if stringCounts != "" {
@@ -64,7 +62,6 @@ func (h CacheRateLimitHandler) checkAvailability(ctx context.Context,
 		counts = 0
 	}
 
-	rule := h.limitRules[notificationType]
 	if counts >= rule.MaxCount {
 		return false, nil
 	}
@@ -74,8 +71,6 @@ func (h CacheRateLimitHandler) checkAvailability(ctx context.Context,
 
 // incrementCount adds to the rate limit counter for the given userID + notification type combination.
 func (h CacheRateLimitHandler) incrementCount(ctx context.Context,
-	userID string, notificationType domain.NotificationType) error {
-	cacheKey := fmt.Sprintf("%s:%s", userID, notificationType)
-	rule := h.limitRules[notificationType]
-	return h.cacheService.Incr(ctx, cacheKey, rule.Expiration)
+	key string, rule domain.RateLimitRule) error {
+	return h.cacheService.Incr(ctx, key, rule.Expiration)
 }

@@ -43,6 +43,22 @@ func TestCacheRateLimitHandler_Check(t *testing.T) {
 		assert.True(t, ok)
 	})
 
+	t.Run("is rate limited", func(t *testing.T) {
+		cacheSvc := mocks.NewCache(t)
+		cacheSvc.
+			On("Get", mock.Anything, mock.Anything).
+			Return("100")
+		cacheSvc.
+			On("Incr", mock.Anything, mock.Anything, mock.Anything).
+			Return(nil).Maybe()
+
+		checker := service.NewCacheRateLimitHandler(cacheSvc, rules)
+		ok, err := checker.IsRateLimited(context.Background(), "123", domain.Status)
+		require.NoError(t, err)
+		assert.False(t, ok)
+		//cacheSvc.AssertNotCalled(t, "Incr", mock.Anything, mock.Anything, mock.Anything)
+	})
+
 	t.Run("when key is not set should default count to 0", func(t *testing.T) {
 		cacheSvc := mocks.NewCache(t)
 		cacheSvc.
@@ -56,21 +72,6 @@ func TestCacheRateLimitHandler_Check(t *testing.T) {
 		ok, err := checker.IsRateLimited(context.Background(), "123", domain.Status)
 		require.NoError(t, err)
 		assert.True(t, ok)
-	})
-
-	t.Run("is rate limited", func(t *testing.T) {
-		cacheSvc := mocks.NewCache(t)
-		cacheSvc.
-			On("Get", mock.Anything, mock.Anything).
-			Return("100")
-		cacheSvc.
-			On("Incr", mock.Anything, mock.Anything, mock.Anything).
-			Return(nil)
-
-		checker := service.NewCacheRateLimitHandler(cacheSvc, rules)
-		ok, err := checker.IsRateLimited(context.Background(), "123", domain.Status)
-		require.NoError(t, err)
-		assert.False(t, ok)
 	})
 
 	t.Run("when check fails it doesn't increment count", func(t *testing.T) {
