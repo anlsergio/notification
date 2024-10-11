@@ -36,7 +36,7 @@ func (h CacheRateLimitHandler) IsRateLimited(ctx context.Context,
 	key := fmt.Sprintf("%s:%s", userID, notificationType)
 	rule := h.limitRules[notificationType]
 
-	ok, err := h.checkAvailability(ctx, key, rule)
+	ok, err := h.checkAvailability(ctx, key, rule.MaxCount)
 	if err != nil {
 		return false, fmt.Errorf("check availability fail: %w", err)
 	}
@@ -55,7 +55,7 @@ func (h CacheRateLimitHandler) IsRateLimited(ctx context.Context,
 // check returns True if there's capacity available for the notification
 // to be sent for the given user.
 func (h CacheRateLimitHandler) checkAvailability(ctx context.Context,
-	key string, rule domain.RateLimitRule) (bool, error) {
+	key string, maxCount int) (bool, error) {
 
 	stringCounts := h.cacheService.Get(ctx, key)
 	counts, err := strconv.Atoi(stringCounts)
@@ -70,7 +70,7 @@ func (h CacheRateLimitHandler) checkAvailability(ctx context.Context,
 		counts = 0
 	}
 
-	if counts >= rule.MaxCount {
+	if counts >= maxCount {
 		return false, nil
 	}
 
