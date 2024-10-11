@@ -11,11 +11,9 @@ import (
 // responsible for informing if there's capacity available for the notification to be sent
 // to a given user using a Leaky Bucket algorithm.
 type RateLimitHandler interface {
-	// Check returns True if there's capacity available for the notification
+	// IsRateLimited returns True if there's capacity available for the notification
 	// to be sent for the given user.
-	Check(ctx context.Context, userID string, notificationType domain.NotificationType) (bool, error)
-	// IncrementCount TODO: add go doc.
-	IncrementCount(ctx context.Context, userID string, notificationType domain.NotificationType) error
+	IsRateLimited(ctx context.Context, userID string, notificationType domain.NotificationType) (bool, error)
 }
 
 // NewCacheRateLimitHandler creates a new CacheRateLimitHandler instance.
@@ -33,16 +31,31 @@ type CacheRateLimitHandler struct {
 	limitRules   domain.RateLimitRules
 }
 
-// Check returns True if there's capacity available for the notification
+func (h CacheRateLimitHandler) IsRateLimited(ctx context.Context,
+	userID string, notificationType domain.NotificationType) (bool, error) {
+
+	ok, err := h.checkAvailability(ctx, userID, notificationType)
+	if err != nil {
+		return false, fmt.Errorf("check availability fail: %w", err)
+	}
+
+	if err = h.incrementCount(ctx, userID, notificationType); err != nil {
+		return false, fmt.Errorf("increment count fail: %w", err)
+	}
+
+	return ok, nil
+}
+
+// check returns True if there's capacity available for the notification
 // to be sent for the given user.
 // TODO: Handle concurrent checks where depending on the number of replicas
 // the notification system might misbehave, allowing more notifications than it should.
 // Transactional guarantee? Locking someway?
-func (d CacheRateLimitHandler) Check(ctx context.Context,
+func (h CacheRateLimitHandler) checkAvailability(ctx context.Context,
 	userID string, notificationType domain.NotificationType) (bool, error) {
 	cacheKey := fmt.Sprintf("%s:%s", userID, notificationType)
 
-	stringCounts := d.cacheService.Get(ctx, cacheKey)
+	stringCounts := h.cacheService.Get(ctx, cacheKey)
 	counts, err := strconv.Atoi(stringCounts)
 	if err != nil {
 		if stringCounts != "" {
@@ -51,7 +64,7 @@ func (d CacheRateLimitHandler) Check(ctx context.Context,
 		counts = 0
 	}
 
-	rule := d.limitRules[notificationType]
+	rule := h.limitRules[notificationType]
 	if counts >= rule.MaxCount {
 		return false, nil
 	}
@@ -59,10 +72,10 @@ func (d CacheRateLimitHandler) Check(ctx context.Context,
 	return true, nil
 }
 
-// IncrementCount adds to the rate limit counter for the given userID + notification type combination.
-func (d CacheRateLimitHandler) IncrementCount(ctx context.Context,
+// incrementCount adds to the rate limit counter for the given userID + notification type combination.
+func (h CacheRateLimitHandler) incrementCount(ctx context.Context,
 	userID string, notificationType domain.NotificationType) error {
 	cacheKey := fmt.Sprintf("%s:%s", userID, notificationType)
-	rule := d.limitRules[notificationType]
-	return d.cacheService.Incr(ctx, cacheKey, rule.Expiration)
+	rule := h.limitRules[notificationType]
+	return h.cacheService.Incr(ctx, cacheKey, rule.Expiration)
 }

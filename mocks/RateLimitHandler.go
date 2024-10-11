@@ -14,12 +14,12 @@ type RateLimitHandler struct {
 	mock.Mock
 }
 
-// Check provides a mock function with given fields: ctx, userID, notificationType
-func (_m *RateLimitHandler) Check(ctx context.Context, userID string, notificationType domain.NotificationType) (bool, error) {
+// IsRateLimited provides a mock function with given fields: ctx, userID, notificationType
+func (_m *RateLimitHandler) IsRateLimited(ctx context.Context, userID string, notificationType domain.NotificationType) (bool, error) {
 	ret := _m.Called(ctx, userID, notificationType)
 
 	if len(ret) == 0 {
-		panic("no return value specified for Check")
+		panic("no return value specified for IsRateLimited")
 	}
 
 	var r0 bool
@@ -40,24 +40,6 @@ func (_m *RateLimitHandler) Check(ctx context.Context, userID string, notificati
 	}
 
 	return r0, r1
-}
-
-// IncrementCount provides a mock function with given fields: ctx, userID, notificationType
-func (_m *RateLimitHandler) IncrementCount(ctx context.Context, userID string, notificationType domain.NotificationType) error {
-	ret := _m.Called(ctx, userID, notificationType)
-
-	if len(ret) == 0 {
-		panic("no return value specified for IncrementCount")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, domain.NotificationType) error); ok {
-		r0 = rf(ctx, userID, notificationType)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
 }
 
 // NewRateLimitHandler creates a new instance of RateLimitHandler. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
