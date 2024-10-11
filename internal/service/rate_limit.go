@@ -9,7 +9,7 @@ import (
 
 // RateLimitHandler is the abstract representation of the rate limit checker,
 // responsible for informing if there's capacity available for the notification to be sent
-// to a given user.
+// to a given user using a Leaky Bucket algorithm.
 type RateLimitHandler interface {
 	// Check returns True if there's capacity available for the notification
 	// to be sent for the given user.
