@@ -11,7 +11,6 @@ var (
 )
 
 // UserRepository is the abstract representation of the user repository.
-// TODO: UserRepository is redundant with the package name.
 type UserRepository interface {
 	// Get retrieves a user by its ID.
 	Get(id string) (domain.User, error)
