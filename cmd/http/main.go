@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
+	httpSwagger "github.com/swaggo/http-swagger"
 	"log"
 	"net/http"
+	_ "notification/api"
 	"notification/internal/config"
 	"notification/internal/controller"
 	"notification/internal/infra"
@@ -49,7 +51,8 @@ func main() {
 	notificationController := controller.NewNotification(notificationSvc)
 	notificationController.SetRouter(r)
 
-	// TODO: Set the Swagger endpoint to render the OpenAPI specs.
+	// Set the Swagger endpoint to render the OpenAPI specs.
+	r.PathPrefix("/swagger").Handler(httpSwagger.WrapHandler)
 
 	// start the HTTP server
 	log.Printf("Starting server on port %d", cfg.ServerPort)

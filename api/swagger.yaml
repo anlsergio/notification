@@ -1,0 +1,53 @@
+basePath: /
+definitions:
+  dto.Notification:
+    properties:
+      message:
+        description: Message is the message content of the notification.
+        type: string
+      type:
+        description: Type is the notification type.
+        type: string
+      user_id:
+        description: UserID is the ID corresponding to the user the notification is
+          meant to be sent to.
+        type: string
+    type: object
+host: notification
+info:
+  contact:
+    email: foo@bar.com
+    name: Notification API Support
+  description: A really nice description
+  title: Notification API
+  version: "1.0"
+paths:
+  /send:
+    post:
+      consumes:
+      - application/json
+      description: Sends a notification message
+      parameters:
+      - description: Notification object to be sent
+        in: body
+        name: notification
+        required: true
+        schema:
+          $ref: '#/definitions/dto.Notification'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Send a notification message
+      tags:
+      - notification
+swagger: "2.0"

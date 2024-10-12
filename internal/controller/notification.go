@@ -37,8 +37,8 @@ func (n Notification) SetRouter(r *mux.Router) {
 // @Produce json
 // @Param notification body dto.Notification true "Notification object to be sent"
 // @Success 200
-// @Failure 400 {object} string "Error message"
-// @Failure 500 {object} string "Error message"
+// @Failure 400 {object} string "Bad Request"
+// @Failure 500 {object} string "Internal Server Error"
 // @Router /send [post]
 func (n Notification) send(w http.ResponseWriter, r *http.Request) {
 	var notificationDTO dto.Notification
