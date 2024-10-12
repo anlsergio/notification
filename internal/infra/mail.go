@@ -7,6 +7,8 @@ import (
 
 // NewSMTPMailer instantiates a new SMTPMailer.
 func NewSMTPMailer(address, from string) *SMTPMailer {
+	// TODO: add auth capabilities.
+	//auth := smtp.PlainAuth("", "mailtrap.foo@gmail.com", "your_password", "live.smtp.mailtrap.io")
 	return &SMTPMailer{
 		address: address,
 		from:    from,

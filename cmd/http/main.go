@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
+	"notification/internal/config"
 	"notification/internal/controller"
 	"notification/internal/infra"
 	"notification/internal/repository"
@@ -27,7 +28,8 @@ import (
 // @host notification
 // @BasePath /
 func main() {
-	// TODO: Load the application configuration params
+	// Load the application configuration params
+	cfg := config.NewAppConfig()
 
 	// set the controller handlers injecting the dependency
 	// in the router
@@ -39,7 +41,8 @@ func main() {
 	cacheService := infra.NewRedisCache()
 	rateLimitRulesRepo := repository.NewInMemoryRateLimitRuleRepository()
 	rateLimitHandler := service.NewCacheRateLimitHandler(cacheService, rateLimitRulesRepo)
-	mailClient := infra.NewSMTPMailer("localhost:1025", "no-reply@example.com")
+	smtpAddress := fmt.Sprintf("%s:%d", cfg.SMTPHost, cfg.SMTPPort)
+	mailClient := infra.NewSMTPMailer(smtpAddress, cfg.MailFrom)
 	userRepo := repository.NewInMemoryUserRepository()
 	notificationSvc := service.NewEmailNotificationSender(rateLimitHandler, mailClient, userRepo)
 
@@ -49,11 +52,10 @@ func main() {
 	// TODO: Set the Swagger endpoint to render the OpenAPI specs.
 
 	// start the HTTP server
-	serverPort := 8089
-	log.Printf("Starting server on port %d", serverPort)
+	log.Printf("Starting server on port %d", cfg.ServerPort)
 
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", serverPort),
+		Addr:    fmt.Sprintf(":%d", cfg.ServerPort),
 		Handler: r,
 	}
 

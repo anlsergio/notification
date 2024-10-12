@@ -34,6 +34,7 @@ type EmailNotificationSender struct {
 }
 
 // Send sends an email notification message to the given user depending on the notification type.
+// TODO: add idempotency check to avoid sending duplicate notifications across multiple replicas.
 func (e EmailNotificationSender) Send(ctx context.Context,
 	userID string, msg string, notificationType domain.NotificationType) error {
 	user, err := e.userRepo.Get(userID)
