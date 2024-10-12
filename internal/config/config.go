@@ -27,6 +27,9 @@ func NewAppConfig() *AppConfig {
 		cfg.SMTPPort = 587
 	}
 
+	cfg.SMTPUsername = os.Getenv("SMTP_USERNAME")
+	cfg.SMTPPassword = os.Getenv("SMTP_PASSWORD")
+
 	return &cfg
 }
 
@@ -46,4 +49,8 @@ type Mail struct {
 	SMTPHost string
 	// SMTPPort is the port for SMTP connection. Defaults to 587.
 	SMTPPort int
+	// SMTPUsername is the username for SMTP authentication.
+	SMTPUsername string
+	// SMTPPassword is the password for SMTP authentication.
+	SMTPPassword string
 }

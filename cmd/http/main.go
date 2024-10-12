@@ -44,7 +44,8 @@ func main() {
 	rateLimitRulesRepo := repository.NewInMemoryRateLimitRuleRepository()
 	rateLimitHandler := service.NewCacheRateLimitHandler(cacheService, rateLimitRulesRepo)
 	smtpAddress := fmt.Sprintf("%s:%d", cfg.SMTPHost, cfg.SMTPPort)
-	mailClient := infra.NewSMTPMailer(smtpAddress, cfg.MailFrom)
+	mailClient := infra.NewSMTPMailer(smtpAddress, cfg.MailFrom,
+		infra.WithAuth("", cfg.SMTPUsername, cfg.SMTPPassword, cfg.SMTPHost))
 	userRepo := repository.NewInMemoryUserRepository()
 	notificationSvc := service.NewEmailNotificationSender(rateLimitHandler, mailClient, userRepo)
 
