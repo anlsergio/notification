@@ -2,10 +2,12 @@ package controller
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/gorilla/mux"
 	"net/http"
 	"notification/internal/controller/middleware"
 	"notification/internal/domain"
+	"notification/internal/repository"
 	"notification/internal/service"
 )
 
@@ -33,6 +35,7 @@ func (n Notification) SetRouter(r *mux.Router) {
 // @Accept json
 // @Produce json
 // @Success 200
+// @Failure 400 {object} string "Error message"
 // @Failure 500 {object} string "Error message"
 // @Router /send [post]
 func (n Notification) send(w http.ResponseWriter, r *http.Request) {
@@ -55,6 +58,10 @@ func (n Notification) send(w http.ResponseWriter, r *http.Request) {
 
 	err = n.svc.Send(r.Context(), dto.UserID, dto.Message, notificationType)
 	if err != nil {
+		if errors.Is(err, repository.ErrInvalidUserID) {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

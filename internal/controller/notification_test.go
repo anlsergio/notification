@@ -2,6 +2,7 @@ package controller_test
 
 import (
 	"errors"
+	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -9,6 +10,7 @@ import (
 	"net/http/httptest"
 	"notification/internal/controller"
 	"notification/internal/domain"
+	"notification/internal/repository"
 	"notification/mocks"
 	"strings"
 	"testing"
@@ -88,7 +90,7 @@ func TestNotification(t *testing.T) {
 			rr := httptest.NewRecorder()
 			r.ServeHTTP(rr, req)
 
-			t.Run("HTTP status is Internal Server Error", func(t *testing.T) {
+			t.Run("HTTP status is Bad Request", func(t *testing.T) {
 				assert.Equal(t, http.StatusBadRequest, rr.Code)
 			})
 
@@ -121,7 +123,7 @@ func TestNotification(t *testing.T) {
 			rr := httptest.NewRecorder()
 			r.ServeHTTP(rr, req)
 
-			t.Run("HTTP status is Internal Server Error", func(t *testing.T) {
+			t.Run("HTTP status is Bad Request", func(t *testing.T) {
 				assert.Equal(t, http.StatusBadRequest, rr.Code)
 			})
 
@@ -129,5 +131,34 @@ func TestNotification(t *testing.T) {
 				svc.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 			})
 		})
+
+		t.Run("invalid user ID", func(t *testing.T) {
+			svc := mocks.NewNotificationSender(t)
+			svc.
+				On("Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+				Return(fmt.Errorf("oops: %w", repository.ErrInvalidUserID))
+
+			notificationController := controller.NewNotification(svc)
+
+			r := mux.NewRouter()
+			notificationController.SetRouter(r)
+
+			requestBody := `
+{
+	"user_id": "abc-123",
+	"type": "status",
+	"message": "Hey there!"
+}
+`
+
+			req := httptest.NewRequest(http.MethodPost, "/send", strings.NewReader(requestBody))
+			rr := httptest.NewRecorder()
+			r.ServeHTTP(rr, req)
+
+			t.Run("HTTP status is Bad Request", func(t *testing.T) {
+				assert.Equal(t, http.StatusBadRequest, rr.Code)
+			})
+		})
+
 	})
 }
