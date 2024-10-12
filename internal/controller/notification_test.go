@@ -99,6 +99,39 @@ func TestNotification(t *testing.T) {
 			})
 		})
 
+		t.Run("fail to pass schema validation", func(t *testing.T) {
+			svc := mocks.NewNotificationSender(t)
+			svc.
+				On("Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+				Return(nil).
+				Maybe()
+
+			notificationController := controller.NewNotification(svc)
+
+			r := mux.NewRouter()
+			notificationController.SetRouter(r)
+
+			requestBody := `
+{
+	"user_id": "",
+	"type": "",
+	"message": ""
+}
+`
+
+			req := httptest.NewRequest(http.MethodPost, "/send", strings.NewReader(requestBody))
+			rr := httptest.NewRecorder()
+			r.ServeHTTP(rr, req)
+
+			t.Run("HTTP status is Bad Request", func(t *testing.T) {
+				assert.Equal(t, http.StatusBadRequest, rr.Code)
+			})
+
+			t.Run("service send isn't called", func(t *testing.T) {
+				svc.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+			})
+		})
+
 		t.Run("invalid notification type", func(t *testing.T) {
 			svc := mocks.NewNotificationSender(t)
 			svc.
@@ -159,6 +192,5 @@ func TestNotification(t *testing.T) {
 				assert.Equal(t, http.StatusBadRequest, rr.Code)
 			})
 		})
-
 	})
 }

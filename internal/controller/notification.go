@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/gorilla/mux"
 	"net/http"
+	"notification/internal/controller/dto"
 	"notification/internal/controller/middleware"
 	"notification/internal/domain"
 	"notification/internal/repository"
@@ -34,29 +35,31 @@ func (n Notification) SetRouter(r *mux.Router) {
 // @Tags notification
 // @Accept json
 // @Produce json
+// @Param notification body dto.Notification true "Notification object to be sent"
 // @Success 200
 // @Failure 400 {object} string "Error message"
 // @Failure 500 {object} string "Error message"
 // @Router /send [post]
 func (n Notification) send(w http.ResponseWriter, r *http.Request) {
-	dto := struct {
-		UserID  string `json:"user_id"`
-		Type    string `json:"type"`
-		Message string `json:"message"`
-	}{}
+	var notificationDTO dto.Notification
 
-	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&notificationDTO); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	notificationType, err := domain.ToNotificationType(dto.Type)
+	if err := notificationDTO.Validate(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	notificationType, err := domain.ToNotificationType(notificationDTO.Type)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err = n.svc.Send(r.Context(), dto.UserID, dto.Message, notificationType)
+	err = n.svc.Send(r.Context(), notificationDTO.UserID, notificationDTO.Message, notificationType)
 	if err != nil {
 		if errors.Is(err, repository.ErrInvalidUserID) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
