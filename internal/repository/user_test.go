@@ -56,3 +56,28 @@ func TestInMemoryUserRepository_Save(t *testing.T) {
 		assert.ErrorIs(t, err, repository.ErrUserAlreadyExists)
 	})
 }
+
+func TestInMemoryUserRepository_Get(t *testing.T) {
+	t.Run("user is found", func(t *testing.T) {
+		user := domain.User{
+			ID:       "123-abc",
+			Name:     "John",
+			LastName: "Doe",
+			Email:    "john.doe@example.com",
+		}
+
+		repo := repository.NewInMemoryUserRepository()
+		require.NoError(t, repo.Save(user))
+
+		savedUser, err := repo.Get(user.ID)
+		require.NoError(t, err)
+		require.NotEmpty(t, savedUser)
+		require.Equal(t, user.ID, savedUser.ID)
+	})
+
+	t.Run("user is not found", func(t *testing.T) {
+		repo := repository.NewInMemoryUserRepository()
+		_, err := repo.Get("invalid")
+		assert.ErrorIs(t, repository.ErrInvalidUserID, err)
+	})
+}

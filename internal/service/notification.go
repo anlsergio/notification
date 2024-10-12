@@ -36,6 +36,11 @@ type EmailNotificationSender struct {
 // Send sends an email notification message to the given user depending on the notification type.
 func (e EmailNotificationSender) Send(ctx context.Context,
 	userID string, msg string, notificationType domain.NotificationType) error {
+	user, err := e.userRepo.Get(userID)
+	if err != nil {
+		return fmt.Errorf("get user fail: %w", err)
+	}
+
 	ok, err := e.rateLimitHandler.IsRateLimited(ctx, userID, notificationType)
 	if err != nil {
 		return fmt.Errorf("rate limit check fail: %w", err)
@@ -43,11 +48,6 @@ func (e EmailNotificationSender) Send(ctx context.Context,
 	if !ok {
 		// TODO: custom error type for proper error assertion.
 		return fmt.Errorf("notification type %s exceeds the rate limit", notificationType)
-	}
-
-	user, err := e.userRepo.Get(userID)
-	if err != nil {
-		return fmt.Errorf("get user fail: %w", err)
 	}
 
 	subject := e.defineSubject(notificationType)

@@ -8,6 +8,8 @@ import (
 var (
 	// ErrUserAlreadyExists is the error when a user is already present in the data store.
 	ErrUserAlreadyExists = errors.New("user already exists")
+	// ErrInvalidUserID is the error when the user ID provided doesn't correspond to any user.
+	ErrInvalidUserID = errors.New("invalid user id")
 )
 
 // UserRepository is the abstract representation of the user repository.
@@ -32,7 +34,11 @@ type InMemoryUserRepository struct {
 
 // Get retrieves a user by its ID.
 func (r *InMemoryUserRepository) Get(id string) (domain.User, error) {
-	return r.users[id], nil
+	user, ok := r.users[id]
+	if !ok {
+		return domain.User{}, ErrInvalidUserID
+	}
+	return user, nil
 }
 
 // Save stores a given user in the repository.
