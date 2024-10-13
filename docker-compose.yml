@@ -16,6 +16,12 @@ services:
     networks:
       - notification-network
     restart: unless-stopped
+    healthcheck:
+      test: wget --spider --tries=1 --timeout=10 http://localhost:80/healthz || exit 1
+      interval: 30s
+      retries: 5
+      start_period: 15s
+      timeout: 10s
   redis:
     container_name: redis_notification
     image: redis:alpine3.20

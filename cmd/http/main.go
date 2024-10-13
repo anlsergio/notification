@@ -38,7 +38,8 @@ func main() {
 	// in the router
 	r := mux.NewRouter()
 
-	// TODO: Health Check controller set up
+	// Health Check controller set up
+	controller.NewHealthCheck().SetRouter(r)
 
 	redisAddress := fmt.Sprintf("%s:%d", cfg.RedisHost, cfg.RedisPort)
 	redisCache := infra.NewRedisCache(infra.WithAddr(redisAddress))
