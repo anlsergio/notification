@@ -54,6 +54,10 @@ paths:
             type: string
         "429":
           description: Too Many Requests
+          headers:
+            Retry-After:
+              description: "3600"
+              type: string
           schema:
             type: string
         "500":

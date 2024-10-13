@@ -56,6 +56,12 @@
                         "description": "Too Many Requests",
                         "schema": {
                             "type": "string"
+                        },
+                        "headers": {
+                            "Retry-After": {
+                                "type": "string",
+                                "description": "3600"
+                            }
                         }
                     },
                     "500": {

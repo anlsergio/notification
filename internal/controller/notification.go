@@ -42,6 +42,7 @@ func (n Notification) SetRouter(r *mux.Router) {
 // @Failure 409 {object} string "Conflict"
 // @Failure 429 {object} string "Too Many Requests"
 // @Failure 500 {object} string "Internal Server Error"
+// @Header 429 {string} Retry-After "3600"
 // @Router /send [post]
 func (n Notification) send(w http.ResponseWriter, r *http.Request) {
 	var notificationDTO dto.Notification
