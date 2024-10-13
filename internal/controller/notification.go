@@ -3,6 +3,7 @@ package controller
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
 	"notification/internal/controller/dto"
@@ -59,16 +60,20 @@ func (n Notification) send(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: handle the error for exceeding limit so that an appropriate response code is sent
-	// back to the user.
-	err = n.svc.Send(r.Context(), notificationDTO.UserID, notificationDTO.Message, notificationType)
+	retryAfter, err := n.svc.Send(r.Context(), notificationDTO.UserID, notificationDTO.Message, notificationType)
 	if err != nil {
-		if errors.Is(err, repository.ErrInvalidUserID) {
+		switch {
+		case errors.Is(err, repository.ErrInvalidUserID):
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
+		case errors.Is(err, service.ErrRateLimitExceeded):
+			w.Header().Set("Retry-After", fmt.Sprintf("%d", int(retryAfter.Seconds())))
+			http.Error(w, err.Error(), http.StatusTooManyRequests)
+			return
+		default:
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
 	}
 
 	w.WriteHeader(http.StatusOK)

@@ -9,6 +9,7 @@ import (
 	"notification/internal/service"
 	"notification/mocks"
 	"testing"
+	"time"
 )
 
 func TestEmailNotification_Send(t *testing.T) {
@@ -16,7 +17,7 @@ func TestEmailNotification_Send(t *testing.T) {
 		rateLimitHandler := mocks.NewRateLimitHandler(t)
 		rateLimitHandler.
 			On("IsRateLimited", mock.Anything, mock.Anything, mock.Anything).
-			Return(true, nil)
+			Return(true, time.Duration(0), nil)
 
 		mailer := mocks.NewMailSender(t)
 		mailer.
@@ -29,14 +30,17 @@ func TestEmailNotification_Send(t *testing.T) {
 			Return(domain.User{}, nil)
 
 		svc := service.NewEmailNotificationSender(rateLimitHandler, mailer, userRepo)
-		assert.NoError(t, svc.Send(context.Background(), "user1", "hey!", domain.Marketing))
+		_, err := svc.Send(context.Background(), "user1", "hey!", domain.Marketing)
+		assert.NoError(t, err)
 	})
 
 	t.Run("rate limit exceeded", func(t *testing.T) {
+		retryAfter := time.Minute
+
 		rateLimitHandler := mocks.NewRateLimitHandler(t)
 		rateLimitHandler.
 			On("IsRateLimited", mock.Anything, mock.Anything, mock.Anything).
-			Return(false, nil).
+			Return(false, retryAfter, nil).
 			Maybe()
 
 		mailer := mocks.NewMailSender(t)
@@ -51,7 +55,9 @@ func TestEmailNotification_Send(t *testing.T) {
 			Return(domain.User{}, nil)
 
 		svc := service.NewEmailNotificationSender(rateLimitHandler, mailer, userRepo)
-		assert.Error(t, svc.Send(context.Background(), "user1", "hey!", domain.Marketing))
+		gotRetryAfter, err := svc.Send(context.Background(), "user1", "hey!", domain.Marketing)
+		assert.ErrorIs(t, err, service.ErrRateLimitExceeded)
+		assert.Equal(t, retryAfter, gotRetryAfter)
 
 		mailer.AssertNotCalled(t, "SendEmail")
 	})
@@ -60,7 +66,7 @@ func TestEmailNotification_Send(t *testing.T) {
 		rateLimitHandler := mocks.NewRateLimitHandler(t)
 		rateLimitHandler.
 			On("IsRateLimited", mock.Anything, mock.Anything, mock.Anything).
-			Return(false, nil).
+			Return(false, time.Duration(0), nil).
 			Maybe()
 
 		mailer := mocks.NewMailSender(t)
@@ -75,7 +81,8 @@ func TestEmailNotification_Send(t *testing.T) {
 			Return(domain.User{}, repository.ErrInvalidUserID)
 
 		svc := service.NewEmailNotificationSender(rateLimitHandler, mailer, userRepo)
-		assert.Error(t, svc.Send(context.Background(), "user1", "hey!", domain.Marketing))
+		_, err := svc.Send(context.Background(), "user1", "hey!", domain.Marketing)
+		assert.Error(t, err)
 
 		rateLimitHandler.AssertNotCalled(t, "IsRateLimited")
 		mailer.AssertNotCalled(t, "SendEmail")

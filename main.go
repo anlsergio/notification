@@ -60,13 +60,13 @@ func main() {
 	var counter int
 	for counter <= 2 {
 		counter++
-		err := notificationSvc.Send(context.Background(),
+		_, err := notificationSvc.Send(context.Background(),
 			user1.ID,
 			fmt.Sprintf("Hey %s! This is the email #%d", user1.Name, counter), domain.Status)
 		if err != nil {
 			log.Error().Msg(err.Error())
 		}
-		err = notificationSvc.Send(context.Background(),
+		_, err = notificationSvc.Send(context.Background(),
 			user2.ID,
 			fmt.Sprintf("Hey %s! This is the email #%d", user2.Name, counter), domain.Status)
 		if err != nil {

@@ -2,17 +2,26 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 	"notification/internal/domain"
 	"notification/internal/repository"
+	"time"
+)
+
+var (
+	// ErrRateLimitExceeded is the error when the notification cannot be sent because
+	// it exceeds the rate limiting rules defined.
+	ErrRateLimitExceeded = errors.New("rate limit exceeded")
 )
 
 // NotificationSender is the abstract representation of the NotificationSender service layer.
 type NotificationSender interface {
 	// Send sends a message to the given user depending on the notification type.
-	Send(ctx context.Context, userID string, msg string, notificationType domain.NotificationType) error
+	Send(ctx context.Context,
+		userID string, msg string, notificationType domain.NotificationType) (retryAfter time.Duration, err error)
 }
 
 // NewEmailNotificationSender creates a new EmailNotificationSender instance.
@@ -34,29 +43,30 @@ type EmailNotificationSender struct {
 }
 
 // Send sends an email notification message to the given user depending on the notification type.
+// It returns ErrRateLimitExceeded if the notification being sent exceeds the pre-defined rate-limiting rules.
 // TODO: add idempotency check to avoid sending duplicate notifications across multiple replicas.
 func (e EmailNotificationSender) Send(ctx context.Context,
-	userID string, msg string, notificationType domain.NotificationType) error {
+	userID string, msg string, notificationType domain.NotificationType) (retryAfter time.Duration, err error) {
 	user, err := e.userRepo.Get(userID)
 	if err != nil {
-		return fmt.Errorf("get user fail: %w", err)
+		return 0, fmt.Errorf("get user fail: %w", err)
 	}
 
-	ok, err := e.rateLimitHandler.IsRateLimited(ctx, userID, notificationType)
+	ok, retryAfter, err := e.rateLimitHandler.IsRateLimited(ctx, userID, notificationType)
 	if err != nil {
-		return fmt.Errorf("rate limit check fail: %w", err)
+		return 0, fmt.Errorf("rate limit check fail: %w", err)
 	}
 	if !ok {
-		// TODO: custom error type for proper error assertion.
-		return fmt.Errorf("notification type %s exceeds the rate limit", notificationType)
+		return retryAfter, errors.Join(ErrRateLimitExceeded,
+			fmt.Errorf("notification type %s exceeds the rate limit", notificationType))
 	}
 
 	subject := e.defineSubject(notificationType)
 	if err := e.client.SendEmail(user.Email, subject, msg); err != nil {
-		return fmt.Errorf("send mail fail: %w", err)
+		return 0, fmt.Errorf("send mail fail: %w", err)
 	}
 
-	return nil
+	return 0, nil
 }
 
 func (e EmailNotificationSender) defineSubject(notificationType domain.NotificationType) string {

@@ -15,7 +15,10 @@ import (
 type RateLimitHandler interface {
 	// IsRateLimited returns True if there's capacity available for the notification
 	// to be sent for the given user.
-	IsRateLimited(ctx context.Context, userID string, notificationType domain.NotificationType) (bool, error)
+	// If there's no capacity available it informs the caller through retryAfter
+	// how much time is left until the next token is available.
+	IsRateLimited(ctx context.Context,
+		userID string, notificationType domain.NotificationType) (ok bool, retryAfter time.Duration, err error)
 }
 
 // NewCacheRateLimitHandler creates a new CacheRateLimitHandler instance.
@@ -34,27 +37,27 @@ type CacheRateLimitHandler struct {
 }
 
 func (h CacheRateLimitHandler) IsRateLimited(ctx context.Context,
-	userID string, notificationType domain.NotificationType) (bool, error) {
+	userID string, notificationType domain.NotificationType) (ok bool, retryAfter time.Duration, err error) {
 	key := fmt.Sprintf("%s:%s", userID, notificationType)
 	rule, err := h.repo.GetByNotificationType(notificationType)
 	if err != nil {
-		return false, fmt.Errorf("get rate limit rule by notification type fail: %w", err)
+		return false, 0, fmt.Errorf("get rate limit rule by notification type fail: %w", err)
 	}
 
-	ok, err := h.checkAvailability(ctx, key, rule.MaxCount)
+	ok, err = h.checkAvailability(ctx, key, rule.MaxCount)
 	if err != nil {
-		return false, fmt.Errorf("check availability fail: %w", err)
+		return false, 0, fmt.Errorf("check availability fail: %w", err)
 	}
 
 	if !ok {
-		return false, nil
+		return false, rule.Expiration, nil
 	}
 
 	if err = h.incrementCount(ctx, key, rule.Expiration); err != nil {
-		return false, fmt.Errorf("increment count fail: %w", err)
+		return false, 0, fmt.Errorf("increment count fail: %w", err)
 	}
 
-	return true, nil
+	return true, 0, nil
 }
 
 // check returns True if there's capacity available for the notification
