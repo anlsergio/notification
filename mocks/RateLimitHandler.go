@@ -17,29 +17,31 @@ type RateLimitHandler struct {
 }
 
 // IsRateLimited provides a mock function with given fields: ctx, userID, notificationType
-func (_m *RateLimitHandler) IsRateLimited(ctx context.Context, userID string, notificationType domain.NotificationType) (bool, time.Duration, error) {
+func (_m *RateLimitHandler) IsRateLimited(ctx context.Context, userID string, notificationType domain.NotificationType) (time.Duration, func() error, error) {
 	ret := _m.Called(ctx, userID, notificationType)
 
 	if len(ret) == 0 {
 		panic("no return value specified for IsRateLimited")
 	}
 
-	var r0 bool
-	var r1 time.Duration
+	var r0 time.Duration
+	var r1 func() error
 	var r2 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, domain.NotificationType) (bool, time.Duration, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, domain.NotificationType) (time.Duration, func() error, error)); ok {
 		return rf(ctx, userID, notificationType)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, domain.NotificationType) bool); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, domain.NotificationType) time.Duration); ok {
 		r0 = rf(ctx, userID, notificationType)
 	} else {
-		r0 = ret.Get(0).(bool)
+		r0 = ret.Get(0).(time.Duration)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, domain.NotificationType) time.Duration); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, string, domain.NotificationType) func() error); ok {
 		r1 = rf(ctx, userID, notificationType)
 	} else {
-		r1 = ret.Get(1).(time.Duration)
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(func() error)
+		}
 	}
 
 	if rf, ok := ret.Get(2).(func(context.Context, string, domain.NotificationType) error); ok {

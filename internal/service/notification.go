@@ -6,15 +6,13 @@ import (
 	"fmt"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+	"log"
 	"notification/internal/domain"
 	"notification/internal/repository"
 	"time"
 )
 
 var (
-	// ErrRateLimitExceeded is the error when the notification cannot be sent because
-	// it exceeds the rate limiting rules defined.
-	ErrRateLimitExceeded = errors.New("rate limit exceeded")
 	// ErrIdempotencyViolation is the error when the same notification has already been processed before.
 	ErrIdempotencyViolation = errors.New("notification already processed")
 )
@@ -62,17 +60,22 @@ func (e EmailNotificationSender) Send(ctx context.Context,
 		return 0, fmt.Errorf("get user fail: %w", err)
 	}
 
-	ok, retryAfter, err := e.rateLimitHandler.IsRateLimited(ctx, userID, notification.Type)
+	var rollback func() error
+	retryAfter, rollback, err = e.rateLimitHandler.IsRateLimited(ctx, userID, notification.Type)
 	if err != nil {
+		if errors.Is(err, ErrRateLimitExceeded) {
+			return retryAfter, fmt.Errorf("notification type %s exceeds the rate limit: %w", notification.Type, err)
+		}
 		return 0, fmt.Errorf("rate limit check fail: %w", err)
-	}
-	if !ok {
-		return retryAfter, errors.Join(ErrRateLimitExceeded,
-			fmt.Errorf("notification type %s exceeds the rate limit", notification.Type))
 	}
 
 	subject := e.defineSubject(notification.Type)
 	if err := e.client.SendEmail(user.Email, subject, notification.Message); err != nil {
+		// if the email could not be sent for any reason, release the rate-limit lock.
+		rollbackErr := rollback()
+		if rollbackErr != nil {
+			log.Printf("rollback rate-limit count failed: %v", rollbackErr)
+		}
 		return 0, fmt.Errorf("send mail fail: %w", err)
 	}
 

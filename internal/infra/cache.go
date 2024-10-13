@@ -86,6 +86,24 @@ func (r RedisCache) Incr(ctx context.Context, key string, expiration time.Durati
 	return nil
 }
 
+// Decr decrements the integer in key by 1 on Redis.
+func (r RedisCache) Decr(ctx context.Context, key string) error {
+	count, err := r.client.Decr(ctx, key).Result()
+	if err != nil {
+		return fmt.Errorf("redis decr: %w", err)
+	}
+
+	// if the count reaches 0, delete the key to save cache memory
+	if count <= 0 {
+		err = r.client.Del(ctx, key).Err()
+		if err != nil {
+			return fmt.Errorf("redis del: %w", err)
+		}
+	}
+
+	return nil
+}
+
 // Get retrieves the value for the given cache key on Redis.
 func (r RedisCache) Get(ctx context.Context, key string) string {
 	return r.client.Get(ctx, key).Val()

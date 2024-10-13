@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"context"
+	"errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"notification/internal/domain"
@@ -17,7 +18,7 @@ func TestEmailNotification_Send(t *testing.T) {
 		rateLimitHandler := mocks.NewRateLimitHandler(t)
 		rateLimitHandler.
 			On("IsRateLimited", mock.Anything, mock.Anything, mock.Anything).
-			Return(true, time.Duration(0), nil)
+			Return(time.Duration(0), nil, nil)
 
 		mailer := mocks.NewMailSender(t)
 		mailer.
@@ -54,7 +55,7 @@ func TestEmailNotification_Send(t *testing.T) {
 		rateLimitHandler := mocks.NewRateLimitHandler(t)
 		rateLimitHandler.
 			On("IsRateLimited", mock.Anything, mock.Anything, mock.Anything).
-			Return(false, retryAfter, nil).
+			Return(retryAfter, nil, service.ErrRateLimitExceeded).
 			Maybe()
 
 		mailer := mocks.NewMailSender(t)
@@ -92,7 +93,7 @@ func TestEmailNotification_Send(t *testing.T) {
 		rateLimitHandler := mocks.NewRateLimitHandler(t)
 		rateLimitHandler.
 			On("IsRateLimited", mock.Anything, mock.Anything, mock.Anything).
-			Return(false, time.Duration(0), nil).
+			Return(time.Duration(0), nil, nil).
 			Maybe()
 
 		mailer := mocks.NewMailSender(t)
@@ -126,11 +127,11 @@ func TestEmailNotification_Send(t *testing.T) {
 		cacheSvc.AssertNotCalled(t, "Set")
 	})
 
-	t.Run("operation is idempotent", func(t *testing.T) {
+	t.Run("notification has already been processed", func(t *testing.T) {
 		rateLimitHandler := mocks.NewRateLimitHandler(t)
 		rateLimitHandler.
 			On("IsRateLimited", mock.Anything, mock.Anything, mock.Anything).
-			Return(true, time.Duration(0), nil).
+			Return(time.Duration(0), nil, nil).
 			Maybe()
 
 		mailer := mocks.NewMailSender(t)
@@ -165,5 +166,56 @@ func TestEmailNotification_Send(t *testing.T) {
 		rateLimitHandler.AssertNotCalled(t, "IsRateLimited")
 		mailer.AssertNotCalled(t, "SendEmail")
 		cacheSvc.AssertNotCalled(t, "Set")
+	})
+
+	t.Run("release rate-limiting lock", func(t *testing.T) {
+		var rolledBack bool
+
+		spyRollback := func() error {
+			rolledBack = true
+			return nil
+		}
+
+		rateLimitHandler := mocks.NewRateLimitHandler(t)
+		rateLimitHandler.
+			On("IsRateLimited", mock.Anything, mock.Anything, mock.Anything).
+			Return(time.Duration(0), spyRollback, nil)
+
+		mailer := mocks.NewMailSender(t)
+		mailer.
+			On("SendEmail", mock.Anything, mock.Anything).
+			Return(errors.New("oops"))
+
+		userRepo := mocks.NewUserRepository(t)
+		userRepo.
+			On("Get", mock.Anything).
+			Return(domain.User{}, nil)
+
+		cacheSvc := mocks.NewCache(t)
+		cacheSvc.
+			On("Get", mock.Anything, mock.Anything).
+			Return("")
+		cacheSvc.
+			On("Set", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+			Return(nil).
+			Maybe()
+
+		notification := domain.Notification{
+			CorrelationID: "0990cc56-f1b7-4f69-bc60-08fac22d41bd",
+			Type:          domain.Marketing,
+			Message:       "Hey there!",
+		}
+
+		svc := service.NewEmailNotificationSender(rateLimitHandler, mailer, userRepo, cacheSvc)
+		_, err := svc.Send(context.Background(), "user1", notification)
+		assert.Error(t, err)
+
+		t.Run("lock is rolled back", func(t *testing.T) {
+			assert.True(t, rolledBack)
+		})
+
+		t.Run("notification is not marked as processed", func(t *testing.T) {
+			cacheSvc.AssertNotCalled(t, "Set")
+		})
 	})
 }

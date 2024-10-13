@@ -13,4 +13,6 @@ type Cache interface {
 	Get(ctx context.Context, key string) string
 	// Set sets a new key/value pair to the Redis cache.
 	Set(ctx context.Context, key string, value string, expiration time.Duration) error
+	// Decr decrements the integer in key by 1 on Redis.
+	Decr(ctx context.Context, key string) error
 }

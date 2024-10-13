@@ -15,6 +15,24 @@ type Cache struct {
 	mock.Mock
 }
 
+// Decr provides a mock function with given fields: ctx, key
+func (_m *Cache) Decr(ctx context.Context, key string) error {
+	ret := _m.Called(ctx, key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Decr")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, key)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // Get provides a mock function with given fields: ctx, key
 func (_m *Cache) Get(ctx context.Context, key string) string {
 	ret := _m.Called(ctx, key)
