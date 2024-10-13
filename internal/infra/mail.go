@@ -51,6 +51,8 @@ type SMTPMailerOption func(*SMTPMailer)
 // WithAuth optionally adds authentication capabilities to the mail sending mechanism.
 // It's basically a wrapper for smtp.PlainAuth so refer to its documentation as reference on
 // how to configure.
+//
+// It only works over TLS, so make sure that the SMTP connection is HTTPS before using this option.
 func WithAuth(identity, username, password, host string) SMTPMailerOption {
 	return func(mailer *SMTPMailer) {
 		mailer.auth = smtp.PlainAuth(identity, username, password, host)

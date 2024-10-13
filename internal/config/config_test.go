@@ -9,8 +9,8 @@ import (
 
 func TestNewAppConfig(t *testing.T) {
 	t.Run("server port is populated", func(t *testing.T) {
-		os.Setenv("SERVE_PORT", "8081")
-		defer os.Unsetenv("SERVE_PORT")
+		os.Setenv("SERVER_PORT", "8081")
+		defer os.Unsetenv("SERVER_PORT")
 
 		cfg := config.NewAppConfig()
 

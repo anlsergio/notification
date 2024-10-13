@@ -9,36 +9,33 @@ import (
 // and returns an instance of it.
 func NewAppConfig() *AppConfig {
 	var cfg AppConfig
-
-	var err error
-	cfg.ServerPort, err = strconv.Atoi(os.Getenv("SERVE_PORT"))
-	if err != nil || cfg.ServerPort == 0 {
-		cfg.ServerPort = 8080
-	}
-
-	cfg.MailFrom = os.Getenv("MAIL_FROM")
-	cfg.SMTPHost = os.Getenv("SMTP_HOST")
-	if cfg.SMTPHost == "" {
-		cfg.SMTPHost = "localhost"
-	}
-
-	cfg.SMTPPort, err = strconv.Atoi(os.Getenv("SMTP_PORT"))
-	if err != nil || cfg.SMTPPort == 0 {
-		cfg.SMTPPort = 587
-	}
-
-	cfg.SMTPUsername = os.Getenv("SMTP_USERNAME")
-	cfg.SMTPPassword = os.Getenv("SMTP_PASSWORD")
+	cfg.HTTPServer.parseConfig()
+	cfg.Mail.parseConfig()
+	cfg.Redis.parseConfig()
 
 	return &cfg
 }
 
 // AppConfig represents the application configuration params.
 type AppConfig struct {
+	HTTPServer
+	Mail
+	Redis
+}
+
+// HTTPServer represents the HTTP server configuration params.
+type HTTPServer struct {
 	// ServerPort is the port where the API server will
 	// listen for connections. Defaults to 8080.
 	ServerPort int
-	Mail
+}
+
+func (s *HTTPServer) parseConfig() {
+	var err error
+	s.ServerPort, err = strconv.Atoi(os.Getenv("SERVER_PORT"))
+	if err != nil || s.ServerPort == 0 {
+		s.ServerPort = 8080
+	}
 }
 
 // Mail represents the mail configuration params.
@@ -53,4 +50,41 @@ type Mail struct {
 	SMTPUsername string
 	// SMTPPassword is the password for SMTP authentication.
 	SMTPPassword string
+}
+
+func (m *Mail) parseConfig() {
+	m.MailFrom = os.Getenv("MAIL_FROM")
+	m.SMTPHost = os.Getenv("SMTP_HOST")
+	if m.SMTPHost == "" {
+		m.SMTPHost = "localhost"
+	}
+
+	var err error
+	m.SMTPPort, err = strconv.Atoi(os.Getenv("SMTP_PORT"))
+	if err != nil || m.SMTPPort == 0 {
+		m.SMTPPort = 587
+	}
+
+	m.SMTPUsername = os.Getenv("SMTP_USERNAME")
+	m.SMTPPassword = os.Getenv("SMTP_PASSWORD")
+}
+
+// Redis represents the Redis cache configuration params.
+type Redis struct {
+	// RedisHost is the host for Redis connection. Defaults to localhost.
+	RedisHost string
+	// RedisPort is the port for Redis connection. Defaults to 6379.
+	RedisPort int
+}
+
+func (r *Redis) parseConfig() {
+	r.RedisHost = os.Getenv("REDIS_HOST")
+	if r.RedisHost == "" {
+		r.RedisHost = "localhost"
+	}
+	var err error
+	r.RedisPort, err = strconv.Atoi(os.Getenv("REDIS_PORT"))
+	if err != nil || r.RedisPort == 0 {
+		r.RedisPort = 6379
+	}
 }

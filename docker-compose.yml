@@ -1,10 +1,28 @@
 services:
+  notification:
+    container_name: notification
+    build:
+      context: .
+      target: final
+    environment:
+      - SERVER_PORT=80
+      - MAIL_FROM=no-reply@example.com
+      - SMTP_HOST=mail_server
+      - SMTP_PORT=1025
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    ports:
+      - "8080:80"
+    networks:
+      - notification-network
+    restart: unless-stopped
   redis:
     container_name: redis_notification
     image: redis:alpine3.20
     ports:
       - "6379:6379"
-    network_mode: bridge
+    networks:
+      - notification-network
     restart: unless-stopped
   mail-server:
     container_name: mail_server
@@ -12,5 +30,10 @@ services:
     ports:
       - "8025:8025" # HTTP / UI
       - "1025:1025" # SMTP
-    network_mode: bridge
+    networks:
+      - notification-network
     restart: unless-stopped
+
+networks:
+  notification-network:
+    driver: bridge

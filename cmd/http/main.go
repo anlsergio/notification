@@ -40,13 +40,19 @@ func main() {
 
 	// TODO: Health Check controller set up
 
+	redisAddress := fmt.Sprintf("%s:%d", cfg.RedisHost, cfg.RedisPort)
+	redisCache := infra.NewRedisCache(infra.WithAddr(redisAddress))
+	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := redisCache.Ping(ctxWithTimeout); err != nil {
+		log.Fatalf("failed to connect to redis using the address %s: %v", redisAddress, err)
+	}
+
 	// Notification resource controller set up
-	cacheService := infra.NewRedisCache()
 	rateLimitRulesRepo := repository.NewInMemoryRateLimitRuleRepository()
-	rateLimitHandler := service.NewCacheRateLimitHandler(cacheService, rateLimitRulesRepo)
+	rateLimitHandler := service.NewCacheRateLimitHandler(redisCache, rateLimitRulesRepo)
 	smtpAddress := fmt.Sprintf("%s:%d", cfg.SMTPHost, cfg.SMTPPort)
-	mailClient := infra.NewSMTPMailer(smtpAddress, cfg.MailFrom,
-		infra.WithAuth("", cfg.SMTPUsername, cfg.SMTPPassword, cfg.SMTPHost))
+	mailClient := infra.NewSMTPMailer(smtpAddress, cfg.MailFrom)
 	userRepo := repository.NewInMemoryUserRepository()
 	notificationSvc := service.NewEmailNotificationSender(rateLimitHandler, mailClient, userRepo)
 

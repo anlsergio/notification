@@ -90,3 +90,8 @@ func (r RedisCache) Incr(ctx context.Context, key string, expiration time.Durati
 func (r RedisCache) Get(ctx context.Context, key string) string {
 	return r.client.Get(ctx, key).Val()
 }
+
+// Ping checks if Redis connection is healthy.
+func (r RedisCache) Ping(ctx context.Context) error {
+	return r.client.Ping(ctx).Err()
+}

@@ -59,6 +59,8 @@ func (n Notification) send(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO: handle the error for exceeding limit so that an appropriate response code is sent
+	// back to the user.
 	err = n.svc.Send(r.Context(), notificationDTO.UserID, notificationDTO.Message, notificationType)
 	if err != nil {
 		if errors.Is(err, repository.ErrInvalidUserID) {
