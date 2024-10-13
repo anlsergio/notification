@@ -17,7 +17,7 @@ func TestEmailNotification_Send(t *testing.T) {
 	t.Run("notification is sent", func(t *testing.T) {
 		rateLimitHandler := mocks.NewRateLimitHandler(t)
 		rateLimitHandler.
-			On("IsRateLimited", mock.Anything, mock.Anything, mock.Anything).
+			On("LockIfAvailable", mock.Anything, mock.Anything, mock.Anything).
 			Return(time.Duration(0), nil, nil)
 
 		mailer := mocks.NewMailSender(t)
@@ -54,7 +54,7 @@ func TestEmailNotification_Send(t *testing.T) {
 
 		rateLimitHandler := mocks.NewRateLimitHandler(t)
 		rateLimitHandler.
-			On("IsRateLimited", mock.Anything, mock.Anything, mock.Anything).
+			On("LockIfAvailable", mock.Anything, mock.Anything, mock.Anything).
 			Return(retryAfter, nil, service.ErrRateLimitExceeded).
 			Maybe()
 
@@ -92,7 +92,7 @@ func TestEmailNotification_Send(t *testing.T) {
 	t.Run("invalid user", func(t *testing.T) {
 		rateLimitHandler := mocks.NewRateLimitHandler(t)
 		rateLimitHandler.
-			On("IsRateLimited", mock.Anything, mock.Anything, mock.Anything).
+			On("LockIfAvailable", mock.Anything, mock.Anything, mock.Anything).
 			Return(time.Duration(0), nil, nil).
 			Maybe()
 
@@ -122,7 +122,7 @@ func TestEmailNotification_Send(t *testing.T) {
 		_, err := svc.Send(context.Background(), "user1", notification)
 		assert.Error(t, err)
 
-		rateLimitHandler.AssertNotCalled(t, "IsRateLimited")
+		rateLimitHandler.AssertNotCalled(t, "LockIfAvailable")
 		mailer.AssertNotCalled(t, "SendEmail")
 		cacheSvc.AssertNotCalled(t, "Set")
 	})
@@ -130,7 +130,7 @@ func TestEmailNotification_Send(t *testing.T) {
 	t.Run("notification has already been processed", func(t *testing.T) {
 		rateLimitHandler := mocks.NewRateLimitHandler(t)
 		rateLimitHandler.
-			On("IsRateLimited", mock.Anything, mock.Anything, mock.Anything).
+			On("LockIfAvailable", mock.Anything, mock.Anything, mock.Anything).
 			Return(time.Duration(0), nil, nil).
 			Maybe()
 
@@ -163,7 +163,7 @@ func TestEmailNotification_Send(t *testing.T) {
 		_, err := svc.Send(context.Background(), "user1", notification)
 		assert.ErrorIs(t, err, service.ErrIdempotencyViolation)
 
-		rateLimitHandler.AssertNotCalled(t, "IsRateLimited")
+		rateLimitHandler.AssertNotCalled(t, "LockIfAvailable")
 		mailer.AssertNotCalled(t, "SendEmail")
 		cacheSvc.AssertNotCalled(t, "Set")
 	})
@@ -178,7 +178,7 @@ func TestEmailNotification_Send(t *testing.T) {
 
 		rateLimitHandler := mocks.NewRateLimitHandler(t)
 		rateLimitHandler.
-			On("IsRateLimited", mock.Anything, mock.Anything, mock.Anything).
+			On("LockIfAvailable", mock.Anything, mock.Anything, mock.Anything).
 			Return(time.Duration(0), spyRollback, nil)
 
 		mailer := mocks.NewMailSender(t)

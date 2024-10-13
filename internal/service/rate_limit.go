@@ -20,15 +20,15 @@ var (
 // responsible for informing if there's capacity available for the notification to be sent
 // to a given user using a Leaky Bucket algorithm.
 type RateLimitHandler interface {
-	// IsRateLimited returns ErrRateLimitExceeded if there's no capacity available for the notification
-	// to be sent for the given user.
-	// If there's no capacity available it informs the caller through retryAfter
-	// how much time is left until the next token is available.
+	// LockIfAvailable locks a token in the rate-limit filter, ensuring the resource is
+	// available for the given user ID and notification type combination until the operation is finished.
 	//
-	// Important: for every time it returns stating that the capacity is available, it will
-	// automatically increment the limit counter. Use the rollback function to handle the rollback
-	// scenario, which is the caller's responsibility.
-	IsRateLimited(ctx context.Context,
+	// It returns ErrRateLimitExceeded if the lock is not possible because there's no capacity available.
+	// In this case it also informs the caller through retryAfter how much time is left until the next token is available.
+	//
+	// It's the caller's responsibility to release the lock using the rollback function
+	// when handling failure scenarios.
+	LockIfAvailable(ctx context.Context,
 		userID string,
 		notificationType domain.NotificationType) (retryAfter time.Duration, rollback func() error, err error)
 }
@@ -48,15 +48,15 @@ type CacheRateLimitHandler struct {
 	repo         repository.RateLimitRuleRepository
 }
 
-// IsRateLimited returns ErrRateLimitExceeded if there's no capacity available for the notification
-// to be sent for the given user.
-// If there's no capacity available it informs the caller through retryAfter
-// how much time is left until the next token is available.
+// LockIfAvailable locks a token in the rate-limit filter, ensuring the resource is
+// available for the given user ID and notification type combination until the operation is finished.
 //
-// Important: for every time it returns stating that the capacity is available, it will
-// automatically increment the limit counter. Use the rollback function to handle the rollback
-// scenario, which is the caller's responsibility.
-func (h CacheRateLimitHandler) IsRateLimited(ctx context.Context,
+// It returns ErrRateLimitExceeded if the lock is not possible because there's no capacity available.
+// In this case it also informs the caller through retryAfter how much time is left until the next token is available.
+//
+// It's the caller's responsibility to release the lock using the rollback function
+// when handling failure scenarios.
+func (h CacheRateLimitHandler) LockIfAvailable(ctx context.Context,
 	userID string, notificationType domain.NotificationType) (retryAfter time.Duration, rollback func() error, err error) {
 	key := fmt.Sprintf("%s:%s", userID, notificationType)
 	rule, err := h.repo.GetByNotificationType(notificationType)

@@ -61,7 +61,7 @@ func (e EmailNotificationSender) Send(ctx context.Context,
 	}
 
 	var rollback func() error
-	retryAfter, rollback, err = e.rateLimitHandler.IsRateLimited(ctx, userID, notification.Type)
+	retryAfter, rollback, err = e.rateLimitHandler.LockIfAvailable(ctx, userID, notification.Type)
 	if err != nil {
 		if errors.Is(err, ErrRateLimitExceeded) {
 			return retryAfter, fmt.Errorf("notification type %s exceeds the rate limit: %w", notification.Type, err)

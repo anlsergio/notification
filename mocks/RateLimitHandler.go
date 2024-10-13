@@ -16,12 +16,12 @@ type RateLimitHandler struct {
 	mock.Mock
 }
 
-// IsRateLimited provides a mock function with given fields: ctx, userID, notificationType
-func (_m *RateLimitHandler) IsRateLimited(ctx context.Context, userID string, notificationType domain.NotificationType) (time.Duration, func() error, error) {
+// LockIfAvailable provides a mock function with given fields: ctx, userID, notificationType
+func (_m *RateLimitHandler) LockIfAvailable(ctx context.Context, userID string, notificationType domain.NotificationType) (time.Duration, func() error, error) {
 	ret := _m.Called(ctx, userID, notificationType)
 
 	if len(ret) == 0 {
-		panic("no return value specified for IsRateLimited")
+		panic("no return value specified for LockIfAvailable")
 	}
 
 	var r0 time.Duration
