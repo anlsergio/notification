@@ -72,3 +72,8 @@ api-docs:
       --dir=cmd/http \
       --parseDependency=true \
       --output=api
+
+# Mockery
+# Generate/Update the mocks' source code.
+update-mocks:
+	mockery --all
