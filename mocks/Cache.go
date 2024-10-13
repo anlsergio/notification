@@ -51,6 +51,24 @@ func (_m *Cache) Incr(ctx context.Context, key string, expiration time.Duration)
 	return r0
 }
 
+// Set provides a mock function with given fields: ctx, key, value, expiration
+func (_m *Cache) Set(ctx context.Context, key string, value string, expiration time.Duration) error {
+	ret := _m.Called(ctx, key, value, expiration)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Set")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, time.Duration) error); ok {
+		r0 = rf(ctx, key, value, expiration)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // NewCache creates a new instance of Cache. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewCache(t interface {

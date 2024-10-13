@@ -46,6 +46,18 @@
                             "type": "string"
                         }
                     },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -60,6 +72,10 @@
         "dto.Notification": {
             "type": "object",
             "properties": {
+                "correlationId": {
+                    "description": "CorrelationID is the ID used for correlating the notification message with different microservices,\nincluding the sender microservice, which means it's treated as a universally unique identifier.",
+                    "type": "string"
+                },
                 "message": {
                     "description": "Message is the message content of the notification.",
                     "type": "string"
@@ -68,7 +84,7 @@
                     "description": "Type is the notification type.",
                     "type": "string"
                 },
-                "user_id": {
+                "userId": {
                     "description": "UserID is the ID corresponding to the user the notification is meant to be sent to.",
                     "type": "string"
                 }

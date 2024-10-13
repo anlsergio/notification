@@ -50,3 +50,14 @@ func ToNotificationType(s string) (NotificationType, error) {
 		return 0, ErrInvalidNotificationType
 	}
 }
+
+// Notification is the representation of a notification.
+type Notification struct {
+	// CorrelationID is the unique identifier for the notification used for correlation
+	// even between different microservices.
+	CorrelationID string
+	// Type is the notification type.
+	Type NotificationType
+	// Message is the content of the notification itself.
+	Message string
+}

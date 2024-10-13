@@ -54,7 +54,7 @@ func main() {
 	smtpAddress := fmt.Sprintf("%s:%d", cfg.SMTPHost, cfg.SMTPPort)
 	mailClient := infra.NewSMTPMailer(smtpAddress, cfg.MailFrom)
 	userRepo := repository.NewInMemoryUserRepository()
-	notificationSvc := service.NewEmailNotificationSender(rateLimitHandler, mailClient, userRepo)
+	notificationSvc := service.NewEmailNotificationSender(rateLimitHandler, mailClient, userRepo, redisCache)
 
 	notificationController := controller.NewNotification(notificationSvc)
 	notificationController.SetRouter(r)

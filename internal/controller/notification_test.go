@@ -23,9 +23,15 @@ import (
 func TestNotification(t *testing.T) {
 	t.Run("notification sending", func(t *testing.T) {
 		t.Run("operation is successful", func(t *testing.T) {
+			notification := domain.Notification{
+				CorrelationID: "0990cc56-f1b7-4f69-bc60-08fac22d41bd",
+				Type:          domain.Marketing,
+				Message:       "Hey there!",
+			}
+
 			svc := mocks.NewNotificationSender(t)
 			svc.
-				On("Send", mock.Anything, "abc-123", "Hey there!", domain.Marketing).
+				On("Send", mock.Anything, "abc-123", notification).
 				Return(time.Duration(0), nil)
 
 			notificationController := controller.NewNotification(svc)
@@ -35,7 +41,8 @@ func TestNotification(t *testing.T) {
 
 			requestBody := `
 {
-	"user_id": "abc-123",
+	"correlationId": "0990cc56-f1b7-4f69-bc60-08fac22d41bd",
+	"userId": "abc-123",
 	"type": "marketing",
 	"message": "Hey there!"
 }
@@ -63,7 +70,8 @@ func TestNotification(t *testing.T) {
 
 			requestBody := `
 {
-	"user_id": "abc-123",
+	"correlationId": "0990cc56-f1b7-4f69-bc60-08fac22d41bd",
+	"userId": "abc-123",
 	"type": "marketing",
 	"message": "Hey there!"
 }
@@ -117,7 +125,8 @@ func TestNotification(t *testing.T) {
 
 			requestBody := `
 {
-	"user_id": "",
+	"correlationId": "",
+	"userId": "",
 	"type": "",
 	"message": ""
 }
@@ -150,7 +159,8 @@ func TestNotification(t *testing.T) {
 
 			requestBody := `
 {
-	"user_id": "abc-123",
+	"correlationId": "0990cc56-f1b7-4f69-bc60-08fac22d41bd",
+	"userId": "abc-123",
 	"type": "invalid",
 	"message": "Hey there!"
 }
@@ -182,7 +192,8 @@ func TestNotification(t *testing.T) {
 
 			requestBody := `
 {
-	"user_id": "abc-123",
+	"correlationId": "0990cc56-f1b7-4f69-bc60-08fac22d41bd",
+	"userId": "abc-123",
 	"type": "status",
 	"message": "Hey there!"
 }
@@ -212,7 +223,8 @@ func TestNotification(t *testing.T) {
 
 			requestBody := `
 {
-	"user_id": "abc-123",
+	"correlationId": "0990cc56-f1b7-4f69-bc60-08fac22d41bd",
+	"userId": "abc-123",
 	"type": "status",
 	"message": "Hey there!"
 }
@@ -229,6 +241,35 @@ func TestNotification(t *testing.T) {
 				retryAfterHeader := rr.Header().Get("Retry-After")
 				require.NotEmpty(t, retryAfterHeader)
 				assert.Equal(t, strconv.Itoa(int(retryAfter.Seconds())), retryAfterHeader)
+			})
+		})
+
+		t.Run("violates idempotency check", func(t *testing.T) {
+			svc := mocks.NewNotificationSender(t)
+			svc.
+				On("Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+				Return(time.Duration(0), fmt.Errorf("oops: %w", service.ErrIdempotencyViolation))
+
+			notificationController := controller.NewNotification(svc)
+
+			r := mux.NewRouter()
+			notificationController.SetRouter(r)
+
+			requestBody := `
+{
+	"correlationId": "0990cc56-f1b7-4f69-bc60-08fac22d41bd",
+	"userId": "abc-123",
+	"type": "status",
+	"message": "Hey there!"
+}
+`
+
+			req := httptest.NewRequest(http.MethodPost, "/send", strings.NewReader(requestBody))
+			rr := httptest.NewRecorder()
+			r.ServeHTTP(rr, req)
+
+			t.Run("HTTP status is Conflict", func(t *testing.T) {
+				assert.Equal(t, http.StatusConflict, rr.Code)
 			})
 		})
 	})

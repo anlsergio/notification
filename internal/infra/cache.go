@@ -91,6 +91,11 @@ func (r RedisCache) Get(ctx context.Context, key string) string {
 	return r.client.Get(ctx, key).Val()
 }
 
+// Set sets a new key/value pair to the Redis cache.
+func (r RedisCache) Set(ctx context.Context, key string, value string, expiration time.Duration) error {
+	return r.client.Set(ctx, key, value, expiration).Err()
+}
+
 // Ping checks if Redis connection is healthy.
 func (r RedisCache) Ping(ctx context.Context) error {
 	return r.client.Ping(ctx).Err()

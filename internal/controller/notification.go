@@ -39,6 +39,8 @@ func (n Notification) SetRouter(r *mux.Router) {
 // @Param notification body dto.Notification true "Notification object to be sent"
 // @Success 200
 // @Failure 400 {object} string "Bad Request"
+// @Failure 409 {object} string "Conflict"
+// @Failure 429 {object} string "Too Many Requests"
 // @Failure 500 {object} string "Internal Server Error"
 // @Router /send [post]
 func (n Notification) send(w http.ResponseWriter, r *http.Request) {
@@ -60,7 +62,13 @@ func (n Notification) send(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	retryAfter, err := n.svc.Send(r.Context(), notificationDTO.UserID, notificationDTO.Message, notificationType)
+	notification := domain.Notification{
+		CorrelationID: notificationDTO.CorrelationID,
+		Type:          notificationType,
+		Message:       notificationDTO.Message,
+	}
+
+	retryAfter, err := n.svc.Send(r.Context(), notificationDTO.UserID, notification)
 	if err != nil {
 		switch {
 		case errors.Is(err, repository.ErrInvalidUserID):
@@ -70,6 +78,8 @@ func (n Notification) send(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Retry-After", fmt.Sprintf("%d", int(retryAfter.Seconds())))
 			http.Error(w, err.Error(), http.StatusTooManyRequests)
 			return
+		case errors.Is(err, service.ErrIdempotencyViolation):
+			http.Error(w, err.Error(), http.StatusConflict)
 		default:
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

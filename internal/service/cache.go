@@ -11,4 +11,6 @@ type Cache interface {
 	Incr(ctx context.Context, key string, expiration time.Duration) error
 	// Get retrieves the value for the given cache key.
 	Get(ctx context.Context, key string) string
+	// Set sets a new key/value pair to the Redis cache.
+	Set(ctx context.Context, key string, value string, expiration time.Duration) error
 }

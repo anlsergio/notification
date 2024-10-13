@@ -16,9 +16,9 @@ type NotificationSender struct {
 	mock.Mock
 }
 
-// Send provides a mock function with given fields: ctx, userID, msg, notificationType
-func (_m *NotificationSender) Send(ctx context.Context, userID string, msg string, notificationType domain.NotificationType) (time.Duration, error) {
-	ret := _m.Called(ctx, userID, msg, notificationType)
+// Send provides a mock function with given fields: ctx, userID, notification
+func (_m *NotificationSender) Send(ctx context.Context, userID string, notification domain.Notification) (time.Duration, error) {
+	ret := _m.Called(ctx, userID, notification)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Send")
@@ -26,17 +26,17 @@ func (_m *NotificationSender) Send(ctx context.Context, userID string, msg strin
 
 	var r0 time.Duration
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, domain.NotificationType) (time.Duration, error)); ok {
-		return rf(ctx, userID, msg, notificationType)
+	if rf, ok := ret.Get(0).(func(context.Context, string, domain.Notification) (time.Duration, error)); ok {
+		return rf(ctx, userID, notification)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, domain.NotificationType) time.Duration); ok {
-		r0 = rf(ctx, userID, msg, notificationType)
+	if rf, ok := ret.Get(0).(func(context.Context, string, domain.Notification) time.Duration); ok {
+		r0 = rf(ctx, userID, notification)
 	} else {
 		r0 = ret.Get(0).(time.Duration)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, domain.NotificationType) error); ok {
-		r1 = rf(ctx, userID, msg, notificationType)
+	if rf, ok := ret.Get(1).(func(context.Context, string, domain.Notification) error); ok {
+		r1 = rf(ctx, userID, notification)
 	} else {
 		r1 = ret.Error(1)
 	}

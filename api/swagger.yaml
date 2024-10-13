@@ -2,13 +2,18 @@ basePath: /
 definitions:
   dto.Notification:
     properties:
+      correlationId:
+        description: |-
+          CorrelationID is the ID used for correlating the notification message with different microservices,
+          including the sender microservice, which means it's treated as a universally unique identifier.
+        type: string
       message:
         description: Message is the message content of the notification.
         type: string
       type:
         description: Type is the notification type.
         type: string
-      user_id:
+      userId:
         description: UserID is the ID corresponding to the user the notification is
           meant to be sent to.
         type: string
@@ -41,6 +46,14 @@ paths:
           description: OK
         "400":
           description: Bad Request
+          schema:
+            type: string
+        "409":
+          description: Conflict
+          schema:
+            type: string
+        "429":
+          description: Too Many Requests
           schema:
             type: string
         "500":
