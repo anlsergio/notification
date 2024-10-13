@@ -88,7 +88,7 @@ func main() {
 	}()
 
 	// Listen to OS termination signals to allow for a graceful shutdown
-	// (especially important in Kubernetes runtimes)
+	// (especially important in ephemeral environments, such as Kubernetes)
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 	<-signals

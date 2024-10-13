@@ -17,6 +17,9 @@ type RateLimitHandler interface {
 	// to be sent for the given user.
 	// If there's no capacity available it informs the caller through retryAfter
 	// how much time is left until the next token is available.
+	//
+	// For every time it returns stating that the capacity is available, it will
+	// automatically increment the limit counter.
 	IsRateLimited(ctx context.Context,
 		userID string, notificationType domain.NotificationType) (ok bool, retryAfter time.Duration, err error)
 }
