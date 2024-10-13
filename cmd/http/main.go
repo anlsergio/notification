@@ -11,6 +11,7 @@ import (
 	_ "notification/api"
 	"notification/internal/config"
 	"notification/internal/controller"
+	"notification/internal/domain"
 	"notification/internal/infra"
 	"notification/internal/repository"
 	"notification/internal/service"
@@ -58,6 +59,10 @@ func main() {
 	// start the HTTP server
 	log.Printf("Starting server on port %d", cfg.ServerPort)
 
+	// TODO: temporary approach. If there's enough time, create the necessary
+	// HTTP handlers for the rules and user resources and populate data from a script instead.
+	populateInitialData(rateLimitRulesRepo, userRepo)
+
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.ServerPort),
 		Handler: r,
@@ -91,4 +96,41 @@ func main() {
 		log.Fatalf("Server shutdown error: %v", err)
 	}
 	log.Println("Server graceful shutdown complete.")
+}
+
+func populateInitialData(rateLimitRulesRepo *repository.InMemoryRateLimitRuleRepository,
+	userRepo *repository.InMemoryUserRepository) {
+	rules := domain.RateLimitRules{
+		domain.Status: domain.RateLimitRule{
+			MaxCount:   2,
+			Expiration: time.Minute * 1,
+		},
+		domain.News: domain.RateLimitRule{
+			MaxCount:   1,
+			Expiration: time.Hour * 24,
+		},
+		domain.Marketing: domain.RateLimitRule{
+			MaxCount:   3,
+			Expiration: time.Hour * 1,
+		},
+	}
+	for k, v := range rules {
+		_ = rateLimitRulesRepo.Save(k, v)
+	}
+
+	user1 := domain.User{
+		ID:       "123-abc",
+		Name:     "John",
+		LastName: "Doe",
+		Email:    "john@example.com",
+	}
+	_ = userRepo.Save(user1)
+
+	user2 := domain.User{
+		ID:       "456-bbb",
+		Name:     "Jane",
+		LastName: "Doe",
+		Email:    "jane@example.com",
+	}
+	_ = userRepo.Save(user2)
 }
