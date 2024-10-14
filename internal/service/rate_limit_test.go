@@ -45,7 +45,7 @@ func TestCacheRateLimitHandler_Check(t *testing.T) {
 			Return(nil)
 
 		checker := service.NewCacheRateLimitHandler(cacheSvc, rateLimitRulesRepo)
-		_, _, err := checker.LockIfAvailable(context.Background(), "123", domain.Status)
+		_, err := checker.LockIfAvailable(context.Background(), "123", domain.Status)
 		require.NoError(t, err)
 	})
 
@@ -59,9 +59,9 @@ func TestCacheRateLimitHandler_Check(t *testing.T) {
 			Return(nil).Maybe()
 
 		checker := service.NewCacheRateLimitHandler(cacheSvc, rateLimitRulesRepo)
-		retryAfter, _, err := checker.LockIfAvailable(context.Background(), "123", domain.Status)
+		lockResult, err := checker.LockIfAvailable(context.Background(), "123", domain.Status)
 		require.ErrorIs(t, err, service.ErrRateLimitExceeded)
-		assert.Equal(t, rules[domain.Status].Expiration, retryAfter)
+		assert.Equal(t, rules[domain.Status].Expiration, lockResult.RetryAfter)
 		cacheSvc.AssertNotCalled(t, "Incr", mock.Anything, mock.Anything, mock.Anything)
 	})
 
@@ -75,7 +75,7 @@ func TestCacheRateLimitHandler_Check(t *testing.T) {
 			Return(nil)
 
 		checker := service.NewCacheRateLimitHandler(cacheSvc, rateLimitRulesRepo)
-		_, _, err := checker.LockIfAvailable(context.Background(), "123", domain.Status)
+		_, err := checker.LockIfAvailable(context.Background(), "123", domain.Status)
 		require.NoError(t, err)
 	})
 
@@ -89,7 +89,7 @@ func TestCacheRateLimitHandler_Check(t *testing.T) {
 			Return(nil).Maybe()
 
 		checker := service.NewCacheRateLimitHandler(cacheSvc, rateLimitRulesRepo)
-		_, _, err := checker.LockIfAvailable(context.Background(), "123", domain.Status)
+		_, err := checker.LockIfAvailable(context.Background(), "123", domain.Status)
 		assert.Error(t, err)
 		cacheSvc.AssertNotCalled(t, "Incr", mock.Anything, mock.Anything, mock.Anything)
 	})

@@ -16,6 +16,18 @@ var (
 	ErrRateLimitExceeded = errors.New("rate limit exceeded")
 )
 
+// RollbackFunc is the function to roll back the rate limit lock operation.
+type RollbackFunc func() error
+
+// LockResult encapsulates the result of the RateLimitHandler.LockIfAvailable method.
+type LockResult struct {
+	// RetryAfter in case of ErrRateLimitExceeded it informs how much time is
+	// left until the next token is available.
+	RetryAfter time.Duration
+	// Rollback releases the token allocated by RateLimitHandler.LockIfAvailable.
+	Rollback RollbackFunc
+}
+
 // RateLimitHandler is the abstract representation of the rate limit checker,
 // responsible for informing if there's capacity available for the notification to be sent
 // to a given user using a Leaky Bucket algorithm.
@@ -24,13 +36,12 @@ type RateLimitHandler interface {
 	// available for the given user ID and notification type combination until the operation is finished.
 	//
 	// It returns ErrRateLimitExceeded if the lock is not possible because there's no capacity available.
-	// In this case it also informs the caller through retryAfter how much time is left until the next token is available.
+	// In this case it also informs the caller through LockResult.RetryAfter how much time is left until the
+	// next token is available.
 	//
-	// It's the caller's responsibility to release the lock using the rollback function
+	// It's the caller's responsibility to release the lock using the LockResult.Rollback function
 	// when handling failure scenarios.
-	LockIfAvailable(ctx context.Context,
-		userID string,
-		notificationType domain.NotificationType) (retryAfter time.Duration, rollback func() error, err error)
+	LockIfAvailable(ctx context.Context, userID string, notificationType domain.NotificationType) (*LockResult, error)
 }
 
 // NewCacheRateLimitHandler creates a new CacheRateLimitHandler instance.
@@ -52,37 +63,44 @@ type CacheRateLimitHandler struct {
 // available for the given user ID and notification type combination until the operation is finished.
 //
 // It returns ErrRateLimitExceeded if the lock is not possible because there's no capacity available.
-// In this case it also informs the caller through retryAfter how much time is left until the next token is available.
+// In this case it also informs the caller through LockResult.RetryAfter how much time is left until the
+// next token is available.
 //
-// It's the caller's responsibility to release the lock using the rollback function
+// It's the caller's responsibility to release the lock using the LockResult.Rollback function
 // when handling failure scenarios.
 func (h CacheRateLimitHandler) LockIfAvailable(ctx context.Context,
-	userID string, notificationType domain.NotificationType) (retryAfter time.Duration, rollback func() error, err error) {
+	userID string, notificationType domain.NotificationType) (*LockResult, error) {
 	key := fmt.Sprintf("%s:%s", userID, notificationType)
 	rule, err := h.repo.GetByNotificationType(notificationType)
 	if err != nil {
-		return 0, nil, fmt.Errorf("get rate limit rule by notification type fail: %w", err)
+		return nil, fmt.Errorf("get rate limit rule by notification type fail: %w", err)
 	}
 
+	// check if the lock can be acquired
 	ok, err := h.checkAvailability(ctx, key, rule.MaxCount)
 	if err != nil {
-		return 0, nil, fmt.Errorf("check availability fail: %w", err)
+		return nil, fmt.Errorf("check availability fail: %w", err)
 	}
 
 	if !ok {
-		return rule.Expiration, nil, ErrRateLimitExceeded
+		return &LockResult{
+			RetryAfter: rule.Expiration,
+		}, ErrRateLimitExceeded
 	}
 
+	// allocate a token by incrementing the counter
 	if err = h.incrementCount(ctx, key, rule.Expiration); err != nil {
-		return 0, nil, fmt.Errorf("increment count fail: %w", err)
+		return nil, fmt.Errorf("increment count fail: %w", err)
 	}
 
 	// give the ability to roll back the operation to the caller.
-	rollback = func() error {
+	rollback := func() error {
 		return h.cacheService.Decr(ctx, key)
 	}
 
-	return 0, rollback, nil
+	return &LockResult{
+		Rollback: rollback,
+	}, nil
 }
 
 // check returns True if there's capacity available for the notification

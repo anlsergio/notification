@@ -60,11 +60,11 @@ func (e EmailNotificationSender) Send(ctx context.Context,
 		return 0, fmt.Errorf("get user fail: %w", err)
 	}
 
-	var rollback func() error
-	retryAfter, rollback, err = e.rateLimitHandler.LockIfAvailable(ctx, userID, notification.Type)
+	lockResult, err := e.rateLimitHandler.LockIfAvailable(ctx, userID, notification.Type)
 	if err != nil {
 		if errors.Is(err, ErrRateLimitExceeded) {
-			return retryAfter, fmt.Errorf("notification type %s exceeds the rate limit: %w", notification.Type, err)
+			return lockResult.RetryAfter,
+				fmt.Errorf("notification type %s exceeds the rate limit: %w", notification.Type, err)
 		}
 		return 0, fmt.Errorf("rate limit check fail: %w", err)
 	}
@@ -72,7 +72,7 @@ func (e EmailNotificationSender) Send(ctx context.Context,
 	subject := e.defineSubject(notification.Type)
 	if err := e.client.SendEmail(user.Email, subject, notification.Message); err != nil {
 		// if the email could not be sent for any reason, release the rate-limit lock.
-		rollbackErr := rollback()
+		rollbackErr := lockResult.Rollback()
 		if rollbackErr != nil {
 			log.Printf("rollback rate-limit count failed: %v", rollbackErr)
 		}

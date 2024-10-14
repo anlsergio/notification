@@ -18,7 +18,9 @@ func TestEmailNotification_Send(t *testing.T) {
 		rateLimitHandler := mocks.NewRateLimitHandler(t)
 		rateLimitHandler.
 			On("LockIfAvailable", mock.Anything, mock.Anything, mock.Anything).
-			Return(time.Duration(0), nil, nil)
+			Return(&service.LockResult{
+				RetryAfter: time.Duration(0),
+			}, nil)
 
 		mailer := mocks.NewMailSender(t)
 		mailer.
@@ -55,7 +57,9 @@ func TestEmailNotification_Send(t *testing.T) {
 		rateLimitHandler := mocks.NewRateLimitHandler(t)
 		rateLimitHandler.
 			On("LockIfAvailable", mock.Anything, mock.Anything, mock.Anything).
-			Return(retryAfter, nil, service.ErrRateLimitExceeded).
+			Return(&service.LockResult{
+				RetryAfter: retryAfter,
+			}, service.ErrRateLimitExceeded).
 			Maybe()
 
 		mailer := mocks.NewMailSender(t)
@@ -93,7 +97,9 @@ func TestEmailNotification_Send(t *testing.T) {
 		rateLimitHandler := mocks.NewRateLimitHandler(t)
 		rateLimitHandler.
 			On("LockIfAvailable", mock.Anything, mock.Anything, mock.Anything).
-			Return(time.Duration(0), nil, nil).
+			Return(&service.LockResult{
+				RetryAfter: time.Duration(0),
+			}, nil).
 			Maybe()
 
 		mailer := mocks.NewMailSender(t)
@@ -131,7 +137,9 @@ func TestEmailNotification_Send(t *testing.T) {
 		rateLimitHandler := mocks.NewRateLimitHandler(t)
 		rateLimitHandler.
 			On("LockIfAvailable", mock.Anything, mock.Anything, mock.Anything).
-			Return(time.Duration(0), nil, nil).
+			Return(&service.LockResult{
+				RetryAfter: time.Duration(0),
+			}, nil).
 			Maybe()
 
 		mailer := mocks.NewMailSender(t)
@@ -179,7 +187,10 @@ func TestEmailNotification_Send(t *testing.T) {
 		rateLimitHandler := mocks.NewRateLimitHandler(t)
 		rateLimitHandler.
 			On("LockIfAvailable", mock.Anything, mock.Anything, mock.Anything).
-			Return(time.Duration(0), spyRollback, nil)
+			Return(&service.LockResult{
+				RetryAfter: time.Duration(0),
+				Rollback:   spyRollback,
+			}, nil)
 
 		mailer := mocks.NewMailSender(t)
 		mailer.
