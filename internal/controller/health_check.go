@@ -3,6 +3,7 @@ package controller
 import (
 	"github.com/gorilla/mux"
 	"net/http"
+	"notification/internal/controller/middleware"
 )
 
 // NewHealthCheck creates a new HealthCheck controller instance.
@@ -18,8 +19,8 @@ type HealthCheck struct{}
 // SetRouter returns the router r with all the necessary routes for the
 // HealthCheck controller setup.
 func (h HealthCheck) SetRouter(r *mux.Router) {
-	r.HandleFunc("/healthz", h.checkHealth).Methods(http.MethodGet)
-	r.HandleFunc("/readyz", h.checkReady).Methods(http.MethodGet)
+	r.HandleFunc("/healthz", middleware.Logger(h.checkHealth)).Methods(http.MethodGet)
+	r.HandleFunc("/readyz", middleware.Logger(h.checkReady)).Methods(http.MethodGet)
 }
 
 func (h HealthCheck) checkHealth(w http.ResponseWriter, r *http.Request) {
