@@ -19,7 +19,7 @@ This is a Notification system that supports notifications through email.
 
 ### Rate Limiting mechanism
 
-There's a rate-limiting mechanism in place based on a Leaky Bucket mechanism, where some rules are enforced based
+There's a rate-limiting mechanism in place based on a Leaky Bucket algorithm, where some rules are enforced based
 on the notification type.
 
 | Notification type | Max count | Expiration |
