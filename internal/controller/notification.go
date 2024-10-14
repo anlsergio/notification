@@ -81,6 +81,7 @@ func (n Notification) send(w http.ResponseWriter, r *http.Request) {
 			return
 		case errors.Is(err, service.ErrIdempotencyViolation):
 			http.Error(w, err.Error(), http.StatusConflict)
+			return
 		default:
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
