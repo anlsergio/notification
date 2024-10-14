@@ -72,7 +72,7 @@ make run
 The application will be running at `localhost:8080`
 > Replace `8080` with the port you defined if you chose a different one.
 ```shell
-curl http://localhost:8080/swagger/index.html -v
+curl http://localhost:8080/healthz -v
 ```
 
 </details>
@@ -88,7 +88,7 @@ make docker-up
 
 The application will be running at `localhost:8080`
 ```shell
-curl http://localhost:8080/swagger/index.html -v
+curl http://localhost:8080/healthz -v
 ```
 
 Update the docker container with your recent changes
@@ -97,6 +97,28 @@ make docker-update
 ```
 
 </details>
+
+#### Test the API
+
+Send a notification through the API:
+
+```shell
+curl -X 'POST' \
+  'http://localhost:8080/send' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "correlationId": "0990cc56-f1b7-4f69-bc60-08fac22d41bj",
+  "message": "Hey there!",
+  "type": "status",
+  "userId": "123-abc"
+}'
+```
+> The correlation ID must be different for every different request.
+
+#### Check the email inbox
+
+Go to [MailHog's UI](http://localhost:8025/#) to check if the message has arrived to the inbox. You should be able
+to see the notification message you just sent with the subject "_Status: there's a new status update_".
 
 ### Helper Scripts
 
