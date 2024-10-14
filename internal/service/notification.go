@@ -49,8 +49,12 @@ type EmailNotificationSender struct {
 // It returns ErrRateLimitExceeded if the notification being sent exceeds the pre-defined rate-limiting rules.
 func (e EmailNotificationSender) Send(ctx context.Context,
 	userID string, notification domain.Notification) (retryAfter time.Duration, err error) {
+	log.Printf("processing notification sending for correlation ID %s", notification.CorrelationID)
+	defer log.Printf("processing complete")
+
 	// idempotency check: ensures that the notification hasn't already been processed.
 	if e.isAlreadyProcessed(ctx, notification.CorrelationID) {
+		log.Printf("notification already processed, skipping sending")
 		return 0, newIdempotencyError(notification.CorrelationID)
 	}
 
@@ -109,6 +113,7 @@ func (e EmailNotificationSender) isAlreadyProcessed(ctx context.Context, correla
 
 func (e EmailNotificationSender) markAsProcessed(ctx context.Context,
 	correlationID string, expiration time.Duration) error {
+	log.Print("marking notification as processed")
 	return e.cache.Set(ctx, correlationID, "processed", expiration)
 }
 
@@ -120,17 +125,23 @@ func newIdempotencyError(correlationID string) error {
 func (e EmailNotificationSender) acquireRateLimitLock(ctx context.Context,
 	userID string, notificationType domain.NotificationType) (*LockResult, error) {
 
+	log.Print("acquiring rate limit lock for notification")
+
 	lockResult, err := e.rateLimitHandler.LockIfAvailable(ctx, userID, notificationType)
 	if err != nil {
 		if errors.Is(err, ErrRateLimitExceeded) {
+			log.Print("notification exceeds the rate limit")
 			return lockResult, fmt.Errorf("notification type %s exceeds the rate limit: %w", notificationType, err)
 		}
+		log.Print("failed to acquire rate limit lock for notification")
 		return nil, fmt.Errorf("rate limit check fail: %w", err)
 	}
 	return lockResult, nil
 }
 
 func (e EmailNotificationSender) safeRollback(lockResult *LockResult) {
+	log.Print("rolling back rate-limit lock...")
+
 	if lockResult == nil {
 		// no need to roll back because the lock hasn't been acquired.
 		return

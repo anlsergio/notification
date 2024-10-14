@@ -2,6 +2,7 @@ package infra
 
 import (
 	"fmt"
+	"log"
 	"net/smtp"
 )
 
@@ -28,6 +29,9 @@ type SMTPMailer struct {
 
 // SendEmail sends the email message through SMTP integration.
 func (m SMTPMailer) SendEmail(to string, subject string, msg string) error {
+	log.Print("sending email through SMTP")
+	defer log.Print("email sending finished")
+
 	composedMsg := []byte(fmt.Sprintf(
 		`
 To: %s

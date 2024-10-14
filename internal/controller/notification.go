@@ -27,7 +27,7 @@ type Notification struct {
 // SetRouter returns the router r with all the necessary routes for the
 // Notification controller setup.
 func (n Notification) SetRouter(r *mux.Router) {
-	r.HandleFunc("/send", middleware.SetJSONContent(n.send)).
+	r.HandleFunc("/send", middleware.Logger(middleware.SetJSONContent(n.send))).
 		Methods(http.MethodPost)
 }
 
