@@ -107,7 +107,7 @@ func TestNotification(t *testing.T) {
 			})
 
 			t.Run("service send isn't called", func(t *testing.T) {
-				svc.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+				svc.AssertNotCalled(t, "Send")
 			})
 		})
 
@@ -141,7 +141,7 @@ func TestNotification(t *testing.T) {
 			})
 
 			t.Run("service send isn't called", func(t *testing.T) {
-				svc.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+				svc.AssertNotCalled(t, "Send")
 			})
 		})
 
@@ -175,7 +175,7 @@ func TestNotification(t *testing.T) {
 			})
 
 			t.Run("service send isn't called", func(t *testing.T) {
-				svc.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+				svc.AssertNotCalled(t, "Send")
 			})
 		})
 
