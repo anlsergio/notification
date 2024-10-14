@@ -56,16 +56,15 @@ func (e EmailNotificationSender) Send(ctx context.Context,
 
 	user, err := e.userRepo.Get(userID)
 	if err != nil {
-		return 0, fmt.Errorf("get user fail: %w", err)
+		return 0, fmt.Errorf("failed to get user: %w", err)
 	}
 
 	lockResult, err := e.rateLimitHandler.LockIfAvailable(ctx, userID, notification.Type)
 	if err != nil {
-		if errors.Is(err, ErrRateLimitExceeded) {
-			return lockResult.RetryAfter,
-				fmt.Errorf("notification type %s exceeds the rate limit: %w", notification.Type, err)
+		if lockResult != nil {
+			retryAfter = lockResult.RetryAfter
 		}
-		return 0, fmt.Errorf("rate limit check fail: %w", err)
+		return retryAfter, err
 	}
 
 	subject := e.defineSubject(notification.Type)
@@ -85,11 +84,6 @@ func (e EmailNotificationSender) Send(ctx context.Context,
 	}
 
 	return 0, nil
-}
-
-func newIdempotencyError(correlationID string) error {
-	return errors.Join(ErrIdempotencyViolation,
-		fmt.Errorf("the notification of correlation ID %s has already been processed", correlationID))
 }
 
 func (e EmailNotificationSender) defineSubject(notificationType domain.NotificationType) string {
@@ -119,4 +113,22 @@ func (e EmailNotificationSender) isAlreadyProcessed(ctx context.Context, correla
 func (e EmailNotificationSender) markAsProcessed(ctx context.Context,
 	correlationID string, expiration time.Duration) error {
 	return e.cache.Set(ctx, correlationID, "processed", expiration)
+}
+
+func newIdempotencyError(correlationID string) error {
+	return errors.Join(ErrIdempotencyViolation,
+		fmt.Errorf("the notification of correlation ID %s has already been processed", correlationID))
+}
+
+func (e EmailNotificationSender) acquireRateLimitLock(ctx context.Context,
+	userID string, notificationType domain.NotificationType) (*LockResult, error) {
+
+	lockResult, err := e.rateLimitHandler.LockIfAvailable(ctx, userID, notificationType)
+	if err != nil {
+		if errors.Is(err, ErrRateLimitExceeded) {
+			return lockResult, fmt.Errorf("notification type %s exceeds the rate limit: %w", notificationType, err)
+		}
+		return nil, fmt.Errorf("rate limit check fail: %w", err)
+	}
+	return lockResult, nil
 }
