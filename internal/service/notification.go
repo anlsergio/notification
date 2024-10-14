@@ -49,10 +49,9 @@ type EmailNotificationSender struct {
 // It returns ErrRateLimitExceeded if the notification being sent exceeds the pre-defined rate-limiting rules.
 func (e EmailNotificationSender) Send(ctx context.Context,
 	userID string, notification domain.Notification) (retryAfter time.Duration, err error) {
-	// idempotency check
+	// idempotency check: ensures that the notification hasn't already been processed.
 	if e.isAlreadyProcessed(ctx, notification.CorrelationID) {
-		return 0, errors.Join(ErrIdempotencyViolation,
-			fmt.Errorf("the notification of correlation ID %s has already been processed", notification.CorrelationID))
+		return 0, newIdempotencyError(notification.CorrelationID)
 	}
 
 	user, err := e.userRepo.Get(userID)
@@ -86,6 +85,11 @@ func (e EmailNotificationSender) Send(ctx context.Context,
 	}
 
 	return 0, nil
+}
+
+func newIdempotencyError(correlationID string) error {
+	return errors.Join(ErrIdempotencyViolation,
+		fmt.Errorf("the notification of correlation ID %s has already been processed", correlationID))
 }
 
 func (e EmailNotificationSender) defineSubject(notificationType domain.NotificationType) string {
