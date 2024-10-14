@@ -59,7 +59,7 @@ func (e EmailNotificationSender) Send(ctx context.Context,
 		return 0, fmt.Errorf("failed to get user: %w", err)
 	}
 
-	lockResult, err := e.rateLimitHandler.LockIfAvailable(ctx, userID, notification.Type)
+	lockResult, err := e.acquireRateLimitLock(ctx, userID, notification.Type)
 	if err != nil {
 		if lockResult != nil {
 			retryAfter = lockResult.RetryAfter
@@ -70,17 +70,14 @@ func (e EmailNotificationSender) Send(ctx context.Context,
 	subject := e.defineSubject(notification.Type)
 	if err := e.client.SendEmail(user.Email, subject, notification.Message); err != nil {
 		// if the email could not be sent for any reason, release the rate-limit lock.
-		rollbackErr := lockResult.Rollback()
-		if rollbackErr != nil {
-			log.Printf("rollback rate-limit count failed: %v", rollbackErr)
-		}
-		return 0, fmt.Errorf("send mail fail: %w", err)
+		e.safeRollback(lockResult)
+		return 0, fmt.Errorf("failed to send email: %w", err)
 	}
 
 	// If everything went fine, mark the current notification as processed
 	// for the idempotency check.
 	if err = e.markAsProcessed(ctx, notification.CorrelationID, time.Hour*24); err != nil {
-		return 0, fmt.Errorf("mark as processed fail: %w", err)
+		return 0, fmt.Errorf("failed to mark notification as processed: %w", err)
 	}
 
 	return 0, nil
@@ -131,4 +128,15 @@ func (e EmailNotificationSender) acquireRateLimitLock(ctx context.Context,
 		return nil, fmt.Errorf("rate limit check fail: %w", err)
 	}
 	return lockResult, nil
+}
+
+func (e EmailNotificationSender) safeRollback(lockResult *LockResult) {
+	if lockResult == nil {
+		// no need to roll back because the lock hasn't been acquired.
+		return
+	}
+
+	if err := lockResult.Rollback(); err != nil {
+		log.Printf("rollback of rate-limit counter failed: %v", err)
+	}
 }
